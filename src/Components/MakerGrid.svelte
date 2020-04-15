@@ -1,4 +1,6 @@
 
+
+<!-- Cytosis has been moved into the Home component -->
 <!-- 
 <Cytosis 
 	tableName={'Mask Makers'} 

@@ -14,6 +14,7 @@
 
 <div class="Cytosis" id="cytosis-{configName}">
 	<slot></slot>
+
 </div>
 
 
@@ -30,39 +31,42 @@
 
 	// required values
 	export let apiKey, baseId, configName, routeDetails
-	export let tableName = undefined // convenience — gets the table you want 
 
 	// bind to these value
 	export let cytosis // the entire cytosis object
-	export let table // sets the table indicated in 'tableName'; convenient
-
-
+	export let data // sets the table indicated in 'tableName'; convenient
 
   onMount(async () => {
 
-  	// console.log('???!!!')
-  	// let hey = await getRecord({})
-  	// console.log('???', getRecord)
-
-		
 	  try {
 	  	isLoading = true
 
-	    const _cytosis = await new Cytosis({
+	    cytosis = await new Cytosis({
 	      apiKey, 
 	      baseId,
 	      configName,
 	      routeDetails,
+	      getConfigOnly: true,
 	    });
 
-	    // console.log('cydata/cytosis', _cytosis)
-	    cytosis = await _cytosis
+		  // Cytosis.getPageTable({
+		  // 	cytosis,
+		  // 	routeDetails: 'Pagination demo',
+		  // }).then((_results) => {
+		  // 	// console.log('getPageTable page one:', _results)
+	  	// 	isLoading = false
+		  // 	data = _results
+		  // 	// items = [... items, ... await results.getNextPage()]
+		  // })
 
-	    // for conveniently grabbing the table you want
-	    if(tableName && table)
-	    	table = _cytosis.results[tableName]
+		  Cytosis.getPageTable({
+		  	cytosis,
+		  	routeDetails: 'Pagination demo',
+		  }, (_results) => {
+		  	isLoading = false
+		  	data = _results
+		  })
 
-	  	isLoading = false
 	  } catch(err) {
 	  	isLoading = false
 			isError = true
@@ -70,6 +74,7 @@
 	    return Promise.reject()
 	  }
   })
+
 
 </script>
 

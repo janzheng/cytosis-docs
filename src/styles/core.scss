@@ -2,7 +2,7 @@
 
 
 // selective import for space saving
-// @import '../../node_modules/coeur/styles/_head-reset.scss';
+@import '../../node_modules/coeur/styles/_head-reset.scss';
 
 @import '../../node_modules/coeur/styles/_utils.scss';
 @import '../../node_modules/coeur/styles/_heart.scss';
@@ -11,7 +11,7 @@
 @import '../../node_modules/coeur/styles/_head.scss';
 
 // @import '../../node_modules/coeur/styles/_neck.scss';
-// @import '../../node_modules/coeur/styles/_neck-buttons.scss';
+@import '../../node_modules/coeur/styles/_neck-buttons.scss';
 @import '../../node_modules/coeur/styles/_neck-layout.scss';
 @import '../../node_modules/coeur/styles/_neck-design.scss';
 @import '../../node_modules/coeur/styles/_neck-links.scss';
@@ -24,10 +24,11 @@
 // @import '../../node_modules/coeur/styles/_body-table';  
 // @import '../../node_modules/coeur/styles/_body-buttonGroups';  
 
-// re-cascade
-@import '../../node_modules/coeur/styles/_head-helpers.scss';
+// // re-cascade
+// @import '../../node_modules/coeur/styles/_head-helpers.scss';
 
 
+@import '../../node_modules/coeur/styles/_body-starter.scss';
 
 // defined units
 $unit: $size;
@@ -35,21 +36,10 @@ $line-height: $unit * 1.6;
 $radius: $unit/4;
 
 
-// typography
-// $font-stack: 'Roboto', -apple-system, BlinkMacSystemFont, "San Francisco", "Helvetica Neue", Helvetica, Ubuntu, Roboto, Noto, "Segoe UI", Arial, sans-serif;
+@import '../styles/_addendum.scss';
 
 
-* {
-  @extend %font-body;
+html, body, * {
+	@extend ._font-body;
 }
-
-
-
-
-
-// to be added to coeur
-
-
-
-
 

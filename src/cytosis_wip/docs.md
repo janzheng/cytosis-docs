@@ -1,6 +1,22 @@
 
 
 
+#### Cytosis Init
+
+- apiKey: API key of the (read-only) user who has access to the Base. API key can also be set per base.
+- apiEditorKey: API key of the user who has write access to the Base. Overrides apiKey. All save functionality is tied to the apiEditorKey for security
+- baseId: ID of the Base. You get this from going to Help > API Documentation and copying the Base value. Base ID can also be set per base
+- routeDetails: helps w/ debugging as the cytosis object will log where it came from
+- configObject: the data pulled from the configTable (default: `_cytosis`) — setting this object will skip loading the config table and will ignore tableNames. Setting this in code provides the fastest experience, as it cuts down on a roundtrip to Airtable. This basically presets tableNames and tableOptions 
+- tableNames: names of the tables that Cytosis will grab. Setting them on init skips the config step
+- configTableName: name of the config table. Default: `_cytosis`. This lets you set up queries quickly in Airtable, but also creates an additional roundtrip per fetch, which can be pretty heavy
+- configName: the name of the config query used to retrieve data the from the config (`_cytosis`) table, e.g. `site-content` used to pull up certain data from a table. If `tableNames` is provided, this step will be skipped
+- options: filters, views, keyword matching, etc. that changes what the Base returns. These are run using the Airtable 
+- pageNumber: only grabs the pag from the given tables (if the page exists). Will grab the same page # if given multiple tables
+- pageDelay: time delay between fetching each additional page from Airtabl
+- \_lastUpdated: date set when the results are loaded — useful for caching and such
+
+
 
 
 

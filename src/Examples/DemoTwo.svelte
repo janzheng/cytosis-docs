@@ -7,17 +7,24 @@
 		<CytosisWip
 		  apiKey={'keygfuzbhXK1VShlR'} 
 		  baseId={'appc0M3MdTYATe7RO'} 
-		  configName={'basic-demo-1'}
-		  routeDetails={'Cytosis docs basic demo one'}
+		  configName={'items-all'}
+		  routeDetails={'Testing large collection item retrieval'}
 		  bind:isLoading={cytosisLoading}
 		  bind:cytosis={cytosisObject}
 		>
+
 			{#if cytosisLoading}
 				... loading Cytosis object ...
 			{/if}
+
 			{#if cytosisObject}
-		  	<div class="_card _padding --flat">{@html marked(cytosisObject.results['Site Content'][0].fields['Markdown'])}</div>
+
+				{#each items as item (item.id)}
+					<div>{ item.fields['Name'] } </div>
+				{/each}
+
 			{/if}
+
 		</CytosisWip>
 	  
 	</div>
@@ -34,12 +41,20 @@
     breaks: true,
   })
 
-  export let title = `1. Barebones Demo`
-  export let description = `This demo retrieves a table from the given Base, by reading a record in '_cytosis'`
+  export let title = `2. Get Items Demo`
+  export let description = `This demo retrieves a ton of items from the Items Table in a non-paginated manner`
+
 
   let cytosisObject
+  let items
+
   let cytosisLoading = false
-  $: console.log(cytosisObject)
+  $: if(cytosisObject) {
+  	console.log('Demo Two:', cytosisObject)
+  	// cytosisObject.getNextPage()
+  	items = cytosisObject['results']['Items Table']
+  }
+
 
 </script>
 

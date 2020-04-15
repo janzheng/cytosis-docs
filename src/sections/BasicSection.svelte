@@ -16,6 +16,7 @@
 	</div>
 
 	<DemoOne />
+	<!-- <DemoTwo /> -->
 
 
 </div>
@@ -23,7 +24,8 @@
 
 
 <script>
-  import DemoOne from './Examples/DemoOne.svelte'
+  import DemoOne from '../examples/DemoOne.svelte'
+  import DemoTwo from '../examples/DemoTwo.svelte'
 	import marked from 'marked'
 
   marked.setOptions({
@@ -37,7 +39,7 @@
 
 
 <style type="text/scss">
-  @import './styles/core';
+  @import '../styles/core';
 
 </style>
 

@@ -1,9 +1,7 @@
 
 /*
 
-  EXPERIMENTAL CYTOSIS
-
-  - switch the plugin to this one if you're testing shit out
+  WIP CYTOSIS
 
 */
 
@@ -22,64 +20,76 @@ class Cytosis {
   constructor (opts) {
 
     const _this = this
-    this.routeName = opts.routeName; // "routeName" or other kind of identifier. Helps w/ debugging
-    this.config = opts.config;
-    this.endpointUrl = opts.endpointUrl;
-    this.apiEditorKey = opts.apiEditorKey;
-    this.apiKey = opts.apiEditorKey || opts.apiKey;
-    this.baseId = opts.baseId;
-    this.configTable = opts.configTable || '_cytosis'; // Airtable table that stores all the configs
 
-    this.airBase = { id: opts.airBase };
-    this.airBase.tables = opts.tables || []
-    this.airBase.tableQuery = opts.tableQuery || undefined; //'tables';
-    this.airBase.options = opts.options || {view: "Grid view"};
-    this.airBase.payloads = opts.payloads; // used for keyword or other payloads
+    this.apiKey = opts.apiEditorKey || opts.apiKey // editorKey overrides regular key
+    this.apiEditorKey = opts.apiEditorKey // admin / editor API, lets you save
+    this.baseId = opts.baseId
+    this.routeDetails = opts.routeDetails // "routeDetails" or other kind of identifier. Helps w/ debugging
 
-    console.log('airtable opts:', this.apiKey)
+    this.configObject = opts.configObject || {} // 
+    this.bases = opts.bases || []
+    this.tableOptions = opts.tableOptions || {view: "Grid view", keyword: undefined}
 
+    this.configTableName = opts.configTableName || '_cytosis' // Airtable table that stores all the configs
+    this.configName = opts.configName || undefined // row inside '_cytosis' that tells Cytosis what table(s) to grab
+    this.getConfigOnly = opts.getConfigOnly || false // if true, doesn't get tables and only returns config
 
-    Airtable.configure({
-      endpointUrl: this.endpointUrl || `https://api.airtable.com`,
-      apiKey: this.apiKey
-    })
+    // pagination is only really useful for retrieving a single table
+    // for multiple tables, just use two cytosis objects
+    this.currentPage = opts.currentPage || 0 // pulls all pages as default
+    this.pageDelay = opts.pageDelay || 150
+    this.tablesLoaded = [] // used by pagination to indicate if each table has finished loading
 
-    this.base = Cytosis.getBase(this.baseId)
+    // these are set by the _config ('_cytosis') table
+    // if you provide bases, it'll skip the _config
 
+    this.endpointUrl = opts.endpointUrl
+
+    this.results = {}
+    this._lastUpdated
 
     // if no query, we just return this object
-    if(!_this.airBase.tableQuery)
-      return this
+    // if(!_this.configName) {
+    //   return this
+    // }
 
-    // console.log('opts: ', opts)
+
     // return a promise if the callee needs to do something w/ the result
     return new Promise(function(resolve, reject) {
       // first retrieve the _cytosis table of tables
-      _this.init(_this.airBase.tableQuery).then((result) => {
 
-        if(result) {
-          // console.log('[Cytosis] _cytosis initiated:', result)
+      // load config + data if given a configName
+      // this loads the 
+      _this.init().then((loaded) => {
+
+        // only return config and don't load tables
+        if(_this.getConfigOnly) {
+          resolve(_this)
+          return
+        }
+
+        if(loaded) {
+          console.log('[Cytosis] _cytosis initiated:', _this.bases)
           // then retrieve the actual data
+
           Cytosis.getTables({
-            options: opts.options, 
-            payloads: opts.payloads, 
             cytosis: _this, 
-            tables: _this.airBase.tables, 
-            routeName: _this.routeName
-          }).then((_result) => {
-            _this.tables = _result
+            bases: _this.bases,
+            routeDetails: _this.routeDetails
+          }).then((_results) => {
+
+            console.log('Cytosis Base results:', _results)
+            _this.results = { ... _this.results, ... _results }
+            _this._lastUpdated = new Date()
             resolve(_this)
           }, (err) => {
-            reject(new Error(`[Cytosis] Cytosis initialization error: Couldn't retrieve all tables from Airtable!`, err))
+            reject(new Error(`[Cytosis/init] Cytosis initialization error: Couldn't retrieve all tables from your Base. Please double check our 'tables' and 'views' column to make sure the table names match and corresponding views exist`, err))
           })
         } else {
-          if(!result)
-            reject(result)
-
-          resolve(result)
+          reject(_this)
         }
       }, (err) => {
-        reject(new Error(`[Cytosis] Cytosis initialization error: Couldn't setup Config (_cytosis)!`, err))
+        reject(new Error(`[Cytosis/init] Cytosis initialization error: Couldn't setup Config ('_cytosis'). Make sure your Base has a config table, e.g. a table named '_cytosis' with the views configured!`, err))
       })
     })
   }
@@ -101,126 +111,141 @@ class Cytosis {
 
 
   // Internal
-  // formerly initConfig() initializes _config table from Airtable; pulls from _cytosis if no init data
-  // will overwrite current table data; useful to rehydrate data
+  // formerly initConfig() initializes _config table from Airtable pulls from _cytosis if no init data
+  // will overwrite current table data useful to rehydrate data
   // (but pulls in EVERYTHING from Airtable)
-  // assumes you want to "reinitialize" with new data; if passed 'false',
+  // assumes you want to "reinitialize" with new data if passed 'false',
   // skips initialization if data already exists
-  init (tableQuery, reset=true) {
+  
+
+  // if given bases will skip all of setup and presume we can pull from the Base
+  // if given a configObject, we can pull the setup data from the config object 
+  init () {
     // console.log('Starting cytosis')
     const _this = this
 
-    // console.log('initializing from index: ', tableQuery)
+    // console.log('initializing from index: ', configName)
 
     return new Promise(function(resolve, reject) {
 
-      // return current state if we don't want to reinitialize
-      if(!reset && _this.airBase.tables && _this.airBase.tables.length > 0) {
-        resolve(_this)
+
+      // if config exists, we skip retrieving _cytosis and go right to setup this saves some fetches
+      if(_this.config) {
+        // console.log('config found! skipping _cytosis', _this.config)
+        // loadConfig sets the bases
+        loadFromConfig(_this.config)
+        resolve(true)
       }
 
-      // if we provided tables, then don't load the _cytosis tableNames
-      if(_this.airBase.tables && _this.airBase.tables.length > 0)
-        resolve(_this)
+      // if we provided tables, but don't have config, 
+      // we still skip config — we just default to whatever options were passed in
+      if(_this.bases && _this.bases.length > 0)
+        resolve(true)
 
+      // this loads the config table into _this.config as an object
+      // also fills out _this.options and _this.bases
+      const loadFromConfig = function(_config) {
+        _this['configObject'] = _config // this needs to be the _cytosis array
 
-      const setup = function(_config) {
-        _this['config'] = _config // this needs to be the _cytosis array
-
-        // this requires a table named '_cytosis' with a row (tableQuery) that indicates where the information is coming from
+        // console.log('loadFromConfig....', _config, _config[_this.configTableName])
+        // this requires a table named '_cytosis' with a row (configName) that indicates where the information is coming from
         // need column 'Tables' with a Multiple Select of all the table names in the base
         // (this is required b/c Airtable API won't let you get all table names)
         // init tables from config if they don't exist
-        if ( !_this.airBase.tables || _this.airBase.tables.length == 0 ) {
-          for(let config of _config._cytosis) {
-            // Option 1: find all the options in the Tables list
-            if ( config.fields['Name'] == tableQuery && config.fields['Tables']) {
+        for(let config of _config[_this.configTableName]) {
 
-              // some queries can contain options like fields, sort, maxRecords etc.
-              // these can drastically cut back the amount of retrieved data
-              const options = {
-                fields: config.fields['fields'], // fields to retrieve in the results
-                filter: config.fields['filterByFormula'],
-                maxRecords: config.fields['maxRecords'],
-                pageSize: config.fields['pageSize'],
-                sort: config.fields['sort'] ? JSON.parse(config.fields['sort'])['sort'] : undefined, // needs to be of format : "{sort: [blahblah]}"
-                view: config.fields['view'],
-                matchKeywordWithField: config.fields['matchKeywordWithField'],
-                matchStyle: config.fields['matchStyle'], // how are keywords matched?
-              }
 
-              // tables is an array of strings that say which tables (tabs) in Airtable to pull from
-              _this.airBase['tables'] = config.fields['Tables']
-              _this.airBase['options'] = options
-            } 
+          // Option 1: find all the options in the Tables list
+          if ( config.fields['Name'] == _this.configName && config.fields['Tables']) {
 
-            // Option 2: find all the tableQueries in the linkedQueryNames (generated lookup) list
-            else if ( config.fields['Name'] == tableQuery && config.fields['LinkedQueryNames']) {
-              const linkedQueries = config.fields['LinkedQueryNames']
-              // console.log('Linked Query Names: ', linkedQueries)
-
-              // this is a special case where instead of an array of strings, it's an
-              // array of objects {query (string), tables (array of strings), options (object)}
-              let tables = []
-              // for each linked query, find and store the correct query
-              linkedQueries.map((linkedquery) => {
-                _config._cytosis.map((query) => {
-                  if(linkedquery == query.fields['Name']) {
-                    // console.log('match:', linkedquery, query)
-
-                    const options = {
-                      fields: query.fields['fields'], // fields to retrieve in the results
-                      filter: query.fields['filterByFormula'],
-                      maxRecords: query.fields['maxRecords'],
-                      pageSize: query.fields['pageSize'],
-                      sort: query.fields['sort'] ? JSON.parse(query.fields['sort'])['sort'] : undefined, // needs to be of format : "{sort: [blahblah]}"
-                      view: query.fields['view'],
-                    }
-
-                    tables.push({
-                      query: linkedquery,
-                      tables: query.fields['Tables'],
-                      options: options
-                    })
-                  }
-                })
-              })
-
-              _this.airBase['tables'] = tables
+            // some queries can contain options like fields, sort, maxRecords etc.
+            // these can drastically cut back the amount of retrieved data
+            const options = {
+              fields: config.fields['fields'], // fields to retrieve in the results
+              filter: config.fields['filterByFormula'],
+              maxRecords: config.fields['maxRecords'],
+              pageSize: config.fields['pageSize'],
+              sort: config.fields['sort'] ? JSON.parse(config.fields['sort'])['sort'] : undefined, // needs to be of format : "{sort: [blahblah]}"
+              view: config.fields['view'],
+              matchKeywordWithField: config.fields['matchKeywordWithField'],
+              matchStyle: config.fields['matchStyle'], // how are keywords matched?
             }
+
+            // tables is an array of strings that say which tables (tabs) in Airtable to pull from
+            // _this.bases = config.fields['Tables']
+            // _this.tableOptions = options
+            _this.bases = [{
+              query: _this.configName,
+              tables: config.fields['Tables'],
+              options,
+            }]
+          } 
+
+          // Option 2: find all the tableQueries in the linkedQueries (this lets you pull in mulitple queries) list
+          else if ( config.fields['Name'] == _this.configName && config.fields['LinkedconfigNames']) {
+            const linkedQueries = config.fields['LinkedconfigNames']
+            // console.log('Linked Query Names: ', linkedQueries)
+
+            // this is a special case where instead of an array of strings, it's an
+            // array of objects {query (string), tables (array of strings), options (object)}
+            let bases = []
+            // for each linked query, find and store the correct query
+            linkedQueries.map((linkedquery) => {
+              _config._cytosis.map((query) => {
+                if(linkedquery == query.fields['Name']) {
+                  // console.log('match:', linkedquery, query)
+
+                  const options = {
+                    fields: query.fields['fields'], // fields to retrieve in the results
+                    filter: query.fields['filterByFormula'],
+                    maxRecords: query.fields['maxRecords'],
+                    pageSize: query.fields['pageSize'],
+                    sort: query.fields['sort'] ? JSON.parse(query.fields['sort'])['sort'] : undefined, // needs to be of format : "{sort: [blahblah]}"
+                    view: query.fields['view'],
+                  }
+
+                  bases.push({
+                    query: linkedquery,
+                    tables: query.fields['Tables'],
+                    options: options
+                  })
+                }
+              })
+            })
+
+            _this.bases = bases
           }
         }
       }
 
-      // if config exists, we skip retrieving _cytosis and go right to setup; this saves some fetches
-      if(_this.config) {
-        // console.log('config found! skipping _cytosis', _this.config)
-        setup(_this.config)
-        resolve(_this)
-      } else {
+      // if no config or tables setup, we grab config table
+      if(!_this.config) {
+
+        console.log('[Cytosis/init] Loading config from table:', _this.configTableName)
+
         // if no table names are provided, it looked for a special '_cytosis' tab
         // this is required to initialize the Cytosis object
+
         Cytosis.getTables({
-          options: {}, 
           cytosis: _this, 
-          tables: [_this.configTable], 
-          routeName: _this.routeName
+          bases: [{
+            tables: [_this.configTableName], 
+            options: {},
+          }],
+          routeDetails: `init-${_this.configTableName}-${_this.routeDetails}`,
         }).then( (_config) => {
 
+          if(!_config || _config[_this.configTableName].length == 0) {
+            reject(new Error(`[Cytosis] — couldn’t find a reference table named ${_this.configTableName} in the base with reference field: :${_this.configName} or 'tables' filled out with the names of tables to load`))
+          }
+
           if(_config) {
-            setup(_config)
+            loadFromConfig(_config)
           }
 
-          if(!_config) {
-            reject(new Error(`[Cytosis] couldn’t find a reference table named ${_this.configTable} in the Base. Make sure you have a reference table named ${_this.configTable}`))
-          }
-
-          if(!_config || !_this.airBase.tables || _this.airBase.tables.length == 0) {
-            reject(new Error(`[Cytosis] — couldn’t find a reference table named ${_this.configTable} in the base with reference field: :${tableQuery} or 'tables' filled out with the names of tables to load`))
-          }
-          // console.log('Cytosis tables: ', _this.airBase, _this.airBase.tables)
+          // console.log('Cytosis tables: ', _this.airBase, _this.tableNames)
           // return the initiated cytosis object on completion
-          resolve(_this)
+          resolve(true)
         }, (err) => {
           reject(new Error(`[Cytosis] Couldn't retrieve Config object from Airtable`, err))
         })
@@ -230,20 +255,20 @@ class Cytosis {
   }
 
   find (findStr, fields=['Name']) {
-    return Cytosis.find(findStr, this.tables, fields)
+    return Cytosis.find(findStr, this.results, fields)
   }
 
   // getRemote (recordId) {
-  //   // finds remotely; maybe break this out in a different fn or run it
+  //   // finds remotely maybe break this out in a different fn or run it
   //   // if not found locally?
   //   // base(table).find(recordId, function(err, record) {
   //   //   if (err) { 
-  //   //     console.log('No record found? ' , record);
-  //   //     console.error(err); return; 
+  //   //     console.log('No record found? ' , record)
+  //   //     console.error(err) return 
   //   //   }
-  //   //   console.log('Record found: ' , record);
+  //   //   console.log('Record found: ' , record)
   //   //   resolve(record)
-  //   // });
+  //   // })
   // }
 
 
@@ -292,14 +317,22 @@ class Cytosis {
 
   // Input: base ID (from airtable)
   // Output: Airtable base object
-  static getBase (baseId) {
-    return Airtable.base(baseId);
+  static getBase (apiKey, baseId, endpointUrl = 'https://api.airtable.com') {
+    // console.log('getBase:', apiKey, baseId, endpointUrl)
+    Airtable.configure({
+      endpointUrl,
+      apiKey,
+    })
+
+    return Airtable.base(baseId)
   }
 
-  static preCheck (apiKey, baseId) {
+  static preCheck ({apiKey, baseId}) {
     if (apiKey && baseId)
       return true
-    return false
+
+    throw new Error('[Cytosis/precheck] Please provide an API key and Base ID')
+    // return false
   }
 
   // Get an object of airtable objects
@@ -314,204 +347,347 @@ class Cytosis {
   //    tables: array of table names ['tableOne','tableTwo', ...]
   // Output: 
   //    creates object of airtable table record arrays
-  //    sets this.tables to the object (overwrites any previous tables)
+  //    sets this.results to the object (overwrites any previous tables)
   //    returns the object
   // 
-  //    this.tables = {
+  //    this.results = {
   //      tableOne: [record object, record object, ...]
   //      ...
   //    }
-  // getTables (options={}, tables=this.airBase.tables ) {
-  // static getTables ({options, tables=this.airBase.tables}) {
-  static getTables ({options, payloads, cytosis, tables, routeName}) {
-
-    options = options || cytosis.airBase.options || {}
-    tables = tables || cytosis.airBase.tables
+  // getTables (options={}, tables=this.tableNames ) {
+  // static getTables ({options, tables=this.tableNames}) {
+  static getTables ({cytosis, bases, routeDetails}) {
+  
+    bases = bases || cytosis.bases
 
     let pTables = [] // tables (promise)
 
     // need to follow these defaults for airtable:
     // view='', fields=undefined, sort=undefined, filter='', 
 
-    if(!Cytosis.preCheck(cytosis.apiKey,cytosis.airBase))
+    if(!Cytosis.preCheck(cytosis))
       return {}
 
-    function getTablePromise({tables, options, payloads}) {
+
+    // returns a promise from airtable
+    const airtableFetch = function({base, tableName, filterObj, list}) {
+      // console.log('[Cytosis] fetching table:', table, 'from', cytosis.baseId)
+      
+
+      return new Promise(function(resolve, reject) {
+        let timedFetcher
+
+        // console.log('airtableFetching:', tableName, filterObj, base._base)
+        
+        base(tableName).select(
+          filterObj
+        ).eachPage(function page(records, fetchNextPage) {
+          // console.log('[Cytosis] Page Fetch for:', tableName, 'routeDetails:', routeDetails, 'page:', cytosis.currentPage, filterObj, records)
+          cytosis.currentPage += 1
+          // This function (`page`) will get called for each page of records.
+          records.forEach(function(record) {
+            // console.log('record:', record, list[list.length-1])
+            list = [... list, Cytosis.cleanRecord(record)]
+          })
+
+          timedFetcher = setTimeout(fetchNextPage, cytosis.pageDelay)
+
+        }, function done(err) {
+          clearTimeout(timedFetcher)
+
+          if (err) { 
+            console.error('[Cytosis/getTablePromise/airtableFetch] Airtable Fetch Error @routeDetails:', routeDetails)
+            console.error('[Cytosis/getTablePromise/airtableFetch] Airtable Fetch Error [2]', 'Errored on table:', tableName, 'bases:', bases)
+            console.error('[Cytosis/getTablePromise/airtableFetch] Airtable Fetch Error >> error message:', err)
+            
+            // experiment with erroring silently
+            // reject(err)
+            reject(new Error("[Cytosis/getTablePromise/airtableFetch] No response from Airtable"))
+            // return
+          }
+
+          cytosis.tablesLoaded = [... cytosis.tablesLoaded, tableName] // indicate this table's done loading
+          resolve({[tableName]: list})
+        })
+
+      })
+    }
+
+    const getTablePromise = function({tableNames, options}) {
       try {
 
-        let {view, fields, sort, filter, maxRecords, pageSize} = options
+        const filterObj = Cytosis.getFilterOptions(options)
 
-        // console.log('getTables retrieving:', tables, options, ' payloads...', payloads)
+        for (let tableName of tableNames) {
+        // for (let tableName of !cytosis.tablesLoaded.includes(tableNames)) {
 
-        if (!view)
-          view = ''
-        if (!filter)
-          filter = ''
-        // console.log('Retrieving airtables')
-
-        // if matchKeywordWithField exists, and a keyword was passed into the cytosis options object,
-        // we create a filterByFormula where the given keyword has to exist in the field
-        // this is useful for matching articles by dynamic slug value, etc.
-        if(payloads && payloads.keyword && options && options.matchKeywordWithField) {
-          // this only works when there is an EXACT match
-          // DEFAULT
-          filter = `IF({${options.matchKeywordWithField}} = "${payloads.keyword}",TRUE(),FALSE())`
-          
-          // this works when the string exists as a part
-          if(options.matchStyle == "partial")
-            filter = `IF(SEARCH("${payloads.keyword}",{${options.matchKeywordWithField}}) > 0,TRUE(),FALSE())`
-          
-          // note: you can't use Filter formula to SEARCH through a string separated arrays, so that' stabled for now
-          // console.log('matchKeywordWithField filter: ', filter, ' for', payloads.keyword, ' with', options.matchKeywordWithField, ' and match style', options.matchStyle)
-        }
-
-        for (let table of tables) {
-
-          // console.log('cytosis tables:', tables.length, tables)
+          // console.log('cytosis getting tableName:', tableName, cytosis.tablesLoaded.includes(tableNames))
           let list = []
 
-          const filterObj = {
-            filterByFormula: filter,
-            view
+          if(cytosis.tablesLoaded.includes(tableName)) {
+            // only process tables that haven't finished loading yet
+            continue
           }
 
-          if(sort) {
-            filterObj['sort'] = sort // need to add this after-the-fact
-          }
-
-          if(maxRecords) {
-            filterObj['maxRecords'] = maxRecords // limit # of records
-          }
-
-          if(pageSize) {
-            filterObj['pageSize'] = pageSize // limit # of records
-          }
-
-          if(fields && fields[table]) { // if a field for this table exists, add it; (old structure, v1)
-            filterObj['fields'] = fields[table]
-          } else if (fields) { // new structure
-            filterObj['fields'] = fields
-          }
-
-          // returns a promise from airtable
-          const airtableFetch = function() {
-            // console.log('[Cytosis] fetching table:', table, 'from', cytosis.baseId)
-            return new Promise(function(resolve, reject) {
-              const base = Cytosis.getBase(cytosis.baseId) // airtable base object
-              let pageCount = 1
-              base(table).select(
-                filterObj
-              ).eachPage(function page(records, fetchNextPage) {
-                console.log('[Cytosis] Page Fetch for:', table, 'routeName:', routeName, 'page:', pageCount)
-                pageCount += 1
-
-                // This function (`page`) will get called for each page of records.
-                records.forEach(function(record) {list.push(record)})
-                // To fetch the next page of records, call `fetchNextPage`.
-                // If there are more records, `page` will get called again.
-                // If there are no more records, `done` will get called.
-
-                // really easy to hit limits, so adding a delay
-                const delay = 250;
-                setTimeout(fetchNextPage, delay);
-                // fetchNextPage()
-              }, function done(err) {
-                if (err) { 
-                  console.error('[Cytosis/getTablePromise/airtableFetch] Airtable Fetch Error @routeName:', routeName)
-                  console.error('[Cytosis/getTablePromise/airtableFetch] Airtable Fetch Error [2]', 'Errored on table:', table, 'tablesLen:', tables.length, 'tables:',tables)
-                  console.error('[Cytosis/getTablePromise/airtableFetch] Airtable Fetch Error >> error message:', err)
-                  
-                  // experiment with erroring silently
-                  // reject(err)
-                  reject(new Error("[Cytosis/getTablePromise/airtableFetch] No response from Airtable"));
-                  // return
-                }
-                resolve({[table]: list})
-              })
-
-            })
-          }
-          
+          // console.log('[Cytosis/getTables] Retrieving:', tableName)
           // table of promises
-          pTables.push(airtableFetch())
+          pTables.push(airtableFetch({
+            base: Cytosis.getBase(cytosis.apiKey, cytosis.baseId), // airtable base object
+            tableName,
+            filterObj,
+            list,
+          }))
         }
 
       } catch(e) {
-        console.error('[Cytosis/getTables/getTablePromise] Airtable caught general error', e) // return; 
+        console.error('[Cytosis/getTables/getTablePromise] Airtable caught general error', e) // return 
       }
     }
 
-    // console.log('getTables:', tables)
 
-    // tables could be an array of strings (table names)
-    if(typeof tables[0] == 'string') {
+    // console.log('getTables:', bases, ' >> ' , cytosis.bases)
+    bases.map((base) => {
+      // need to slow it down
+      // setTimeout(function(){
       getTablePromise({
-        tables: tables,
-        options: options,
-        payloads: payloads
+        tableNames: base.tables, // array of strings 
+        options: base.options || {},
+        apiKey: base.apiKey || cytosis.apiKey,
+        baseId: base.baseId || cytosis.baseId
       })
-    } 
-    // tables could also be an array of objects of { query: 'tablequery', options }
-    else {
-      tables.map((query) => {
-        // console.log('mapping:', query)
-        // need to slow it down
-        // setTimeout(function(){
-          getTablePromise({
-            tables: query.tables, // array of strings 
-            options: query.options, 
-            payloads: payloads
-          })
-        // }, 200);
-      })
-    }
+      // }, 200)
+    })
 
     try {
       return Promise.all(pTables).then((tables) => {
+
         let finalObj = {}
 
-        for (let t of tables) {
-          finalObj = { ...finalObj, ...t, ...cytosis.data }
+        for (let table of tables) {
+          // finalObj = { ...finalObj, ...t, ...cytosis.data }
+          finalObj = { ...finalObj, ...table }
         }
         // _this.airtable = finalObj
-        // _this.tables = finalObj
-        // console.log('getTables final object:', finalObj)
+        // _this.results = finalObj
 
         return finalObj // return as a one promise object
       }, (err) => {
-        console.error("[Cytosis/getTables] A table errored out or timed out: ", err);
+        console.error("[Cytosis/getTables] A table errored out or timed out: ", err)
         // return Error("[Cytosis/getTables] Fetch Error")
-        return Promise.reject(new Error("[Cytosis/getTables] Fetch Error"));
+        return Promise.reject(new Error("[Cytosis/getTables] Fetch Error"))
       })
     } catch (err) {
-      console.error("[Cytosis/getTables/pTablesPromiseHandling] An Airtable table errored out", err);
+      console.error("[Cytosis/getTables/pTablesPromiseHandling] An Airtable table errored out", err)
     }
+
+
+
   }
 
 
-  // helper to only get the config files
-  // doesn't need the rest of the object to be configured
-  // returns a promise
-  static getConfig({apiKey, airBase, routeName, endpointUrl}) {
 
-    Airtable.configure({
-      endpointUrl: endpointUrl || `https://api.airtable.com`,
-      apiKey: apiKey
+
+
+// "paginate" through a table by getting more
+// airtable doesn't support real pagination (no max #, page #, offset)
+// base: {
+//   tableNames: base.tables, // array of strings — only takes the FIRST one listed
+//   options: base.options || {},
+//   apiKey: base.apiKey
+//   baseId: base.baseId
+// }
+// only cytosis necessary
+static getPageTable ({cytosis, routeDetails, apiKey, baseId, tableName, options}, callback) {
+
+  const base = Cytosis.getBase(apiKey || cytosis.apiKey, baseId || cytosis.baseId) // airtable base object
+
+  // only use the first attached table, otherwise pagination will be annoying
+  if(!tableName)
+    if(cytosis.bases[0].tables[0])
+      tableName = cytosis.bases[0].tables[0]
+    else
+      throw new Error('[Cytosis/getPageTable] Please give a table name for pagination')
+
+  const filterObj = Cytosis.getFilterOptions(options || cytosis.bases[0].options)
+  let results = []
+  let currentPage = 0
+  let isDone = false
+
+  // note, returning a promise interferes with done(),
+  // so we must use a callback
+  // return new Promise(function(resolve, reject) {
+
+    const baseSelect = base(tableName).select(
+      filterObj
+    )
+
+    // const getNextPage = async (results, fetchNextPage) => {
+    //   // await fetchNextPage()
+    //   resolve('banana poo')
+    // }
+
+    let fetchResolve, lastBatch
+
+
+    baseSelect.eachPage(function page(records, fetchNextPage) {
+      // console.log('[Cytosis] Page Fetch for:', tableName, 'routeDetails:', routeDetails, 'page:', currentPage, filterObj, records)
+      currentPage += 1
+
+      // check if record exists (paging doesn't trigger 'done'
+      // if we use a promise)
+      if(lastBatch && lastBatch[0].id === records[0].id) {
+        isDone = true
+      }
+
+      if(!isDone) {
+        lastBatch = records
+        records.forEach(function(record) {
+          // console.log('paged record:', record)
+          results = [... results, Cytosis.cleanRecord(record)]
+          // results = Cytosis.cleanRecord(record)
+        })
+      }
+
+      if(fetchResolve)
+        fetchResolve(results)
+
+      callback({
+        results,
+        isDone,
+        getNextPage: async () => { 
+          if(!isDone) {
+            let results = await new Promise((_resolve, _reject) => {
+              fetchResolve = _resolve
+              fetchNextPage()
+            })
+            // getNextPage(fetchNextPage) 
+          }
+
+          return {
+            results,
+            isDone
+          }
+        },
+      })
+
+      // auto fetches everything
+      // fetchNextPage()
+
+      // can't use a promise
+      // resolve({
+      // results,
+      // isDone,
+      // getNextPage: async () => { 
+      //   if(!isDone) {
+      //     let results = await new Promise((_resolve, _reject) => {
+      //       fetchResolve = _resolve
+      //       fetchNextPage()
+      //     })
+      //     // getNextPage(fetchNextPage) 
+      //   }
+
+      //   return {
+      //     results,
+      //     isDone
+      //   }
+      // },
+      // })
+
+    }, function done(err) {
+
+      if (err) { 
+        console.error('[Cytosis/getPageTable] Airtable Fetch Error @routeDetails:', routeDetails)
+        console.error('[Cytosis/getPageTable] Airtable Fetch Error [2]', 'Errored on table:', tableName, 'tableNames:', tableNames)
+        console.error('[Cytosis/getPageTable] Airtable Fetch Error >> error message:', err)
+        
+        // experiment with erroring silently
+        // reject(err)
+        reject(new Error("[Cytosis/getPageTable] No response from Airtable"))
+        // return
+      }
+
+      isDone = true
+      console.log('done!', results)
+
+      callback({
+        results,
+        isDone,
+      })
+
     })
+
+  // })
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // given options, this builds the filter object
+  // required by airtableFetch and anything else that pulls data
+  // from Airtable
+  static getFilterOptions(options) {
+
+    let {fields, sort, maxRecords, pageSize} = options
+    let view = options.view || ''
+    let filter = options.filter || ''
+
+    // console.log('getTables retrieving:', tableNames, options)
+
+    // if matchKeywordWithField exists, and a keyword was passed into the cytosis options object,
+    // we create a filterByFormula where the given keyword has to exist in the field
+    // this is useful for matching articles by dynamic slug value, etc.
+    if(options && options.keyword && options.matchKeywordWithField) {
+      // this only works when there is an EXACT match
+      // DEFAULT
+      filter = `IF({${options.matchKeywordWithField}} = "${options.keyword}",TRUE(),FALSE())`
+      
+      // this works when the string exists as a part
+      if(options.matchStyle == "partial")
+        filter = `IF(SEARCH("${options.keyword}",{${options.matchKeywordWithField}}) > 0,TRUE(),FALSE())`
+      
+      // note: you can't use Filter formula to SEARCH through a string separated arrays, so that' stabled for now
+      // console.log('matchKeywordWithField filter: ', filter, ' for', options.keyword, ' with', options.matchKeywordWithField, ' and match style', options.matchStyle)
+    }
     
-    const configP = Cytosis.getTables({
-      cytosis: {
-        'apiKey': apiKey,
-        'airBase': {'id': airBase},
-      }, 
-      tables: ['_cytosis'], 
-      routeName: '[_getConfig] '+routeName
-    })
-    return configP
+    const filterObj = {
+      filterByFormula: filter,
+      view
+    }
+
+    if(sort) {
+      filterObj['sort'] = sort // need to add this after-the-fact
+    }
+
+    if(maxRecords) {
+      filterObj['maxRecords'] = maxRecords // limit # of records inclusive of all pages
+    }
+
+    if(pageSize) {
+      filterObj['pageSize'] = pageSize // limit # of records for each page
+    }
+
+    if(fields && fields[tableName]) { // if a field for this table exists, add it (old structure, v1)
+      filterObj['fields'] = fields[tableName]
+    } else if (fields) { // new structure
+      filterObj['fields'] = fields
+    }
+
+    return filterObj
   }
-
-
-
 
 
 
@@ -525,13 +701,13 @@ class Cytosis {
   // Output: a single record object
   static get (recordId, tables) {
     // const base = this.getBase(this.baseId)
-    // const tables = this.tables // slice makes a shallow copy
+    // const tables = this.results // slice makes a shallow copy
     let result
 
     if(tables) {
       // return new Promise(function(resolve, reject) {
         // iterate through every table, but only one should resolve, since recordIds are unique
-        // replace with async iterator in the future; this is expensive since it does a fetch for EACH table
+        // replace with async iterator in the future this is expensive since it does a fetch for EACH table
         Object.keys(tables).map( (table) => {
           for (let record of tables[table]) {
             if (record.id == recordId) {
@@ -561,13 +737,17 @@ class Cytosis {
   static async getRecord ({recordId, base, tableName, apiKey, baseId, endpointUrl}) {
 
     try {
+      if(!tableName)
+        throw new Error(`[Cytosis/getRecord] Please provide a table name`)
+      
+      if(!apiKey)
+        throw new Error(`[Cytosis/getRecord] Please provide an apiKey`)
+      
+      if(!baseId)
+        throw new Error(`[Cytosis/getRecord] Please provide a base ID`)
+      
       if(!base) {
-        Airtable.configure({
-          endpointUrl: endpointUrl || `https://api.airtable.com`,
-          apiKey: apiKey
-        })
-
-        base = Cytosis.getBase(baseId)
+        base = Cytosis.getBase(apiKey, baseId)
       }
 
       let record = await base(tableName).find(recordId)
@@ -594,7 +774,7 @@ class Cytosis {
   // findStr = 'Content.RowName.ColName.LinkedColName' — if a ColName contains links, LinkedColName refers to the field in the linked table. Very useful to get the names or other data
   // ex: cytosis.find('Content.slug', [this.cytosis.tables.Notes], ['Slug'])
   // - both RowName and ColName can contain spaces
-  // * assumes Names are unique; will return the first one found
+  // * assumes Names are unique will return the first one found
   // 
   // Input:
   //    findStr: a specially formatted string used to retrieve data
@@ -657,7 +837,7 @@ class Cytosis {
     const records = matchField(queries[1], {q: tables[queries[0]]}, fields)
 
     // return if it's a string or nonarray
-    // assume Name is unique, otherwise complicated; return first found
+    // assume Name is unique, otherwise complicated return first found
     if(!Array.isArray(records[0].fields[queries[2]])) {
       return records[0].fields[queries[2]]
     }
@@ -692,7 +872,7 @@ class Cytosis {
   // - takes a string, just like in Find (above)
   // - takes an array of airtable objects (e.g. [table], or one of the tables that Find required)
   // - returns undefined if there's an error (doesn't throw an error)
-  // - always returns one item (the first; assumes lookup values are unique)
+  // - always returns one item (the first assumes lookup values are unique)
   // - is just a wrapper for Find
   // takes: 
   static findOne (findStr, table, fields=['Name']) {
@@ -750,7 +930,7 @@ class Cytosis {
   // simple promise-based wrapper for saving to airtable
   // no recordId: creates a new record
   // recordId: replaces current record
-  // note that the API requires tablename regardless; either we find it or pass it in
+  // note that the API requires tablename regardless either we find it or pass it in
   // Input: 
   //    object: a JS object with one or more keys that match field (column) names in the table
   //    tableName: a string indicating what table to save to
@@ -760,7 +940,7 @@ class Cytosis {
   //    an object: the saved record object as returned from Airtable
   static save (object, tableName, cytosis, recordId=undefined) {
     
-    if(!Cytosis.preCheck(cytosis.apiKey,cytosis.airBase))
+    if(!Cytosis.preCheck(cytosis))
       return
 
     let base = cytosis.base
@@ -769,33 +949,33 @@ class Cytosis {
         if (!recordId) {
           base(tableName).create(object, function(err, record) {
             if (err) { console.error('Airtable async save/create error', err); reject(err); return }
-            console.log('New record: ' , record.getId(), record.fields['Name']);
-            resolve(record);
-          });
+            console.log('New record: ' , record.getId(), record.fields['Name'])
+            resolve(record)
+          })
         } else {
           // old API doesn't support typecast
           base(tableName).update(recordId, object, function(err, record) {
             if (err) { console.error('Airtable async save error', err); reject(err); return }
-            console.log('Updated record: ' , record.getId(), record.fields['Name']);
-            resolve(record);
-          });
+            console.log('Updated record: ' , record.getId(), record.fields['Name'])
+            resolve(record)
+          })
         }
       })
 
     } catch(e) {
-      console.error('Save Object to Airtable error (do you have permission?)', e); return; 
+      console.error('Save Object to Airtable error (do you have permission?)', e); return 
     }
   }
 
   // uses the new Airtable create/update API
   // passes in an array of objects (id is embedded within the objects)
   // takes up to ten objects in the array
-  // set "create" to true to create; has to be explicit, since it's easier to read 
+  // set "create" to true to create has to be explicit, since it's easier to read 
   // to create: objectArray = [{fields: "name: {}, ..."}]
   // to update: objectArray = [{id: "123", fields: "name: {}, ..."}]
   static saveArray (objectArray, tableName, cytosis, create=false, typecast=false) {
     
-    if(!Cytosis.preCheck(cytosis.apiKey,cytosis.airBase))
+    if(!Cytosis.preCheck(cytosis))
       return
 
     let base = cytosis.base
@@ -804,20 +984,20 @@ class Cytosis {
         if (create) {
           base(tableName).create(objectArray, {typecast: typecast}, function(err, records) {
             if (err) { console.error('Airtable async saveArray/create error', err); reject(err); return }
-            console.log('New records: ' , records);
-            resolve(records);
-          });
+            console.log('New records: ' , records)
+            resolve(records)
+          })
         } else {
           base(tableName).update(objectArray, {typecast: typecast}, function(err, records) {
             if (err) { console.error('Airtable async saveArray/update error', err); reject(err); return }
-            console.log('Updated records: ' , records);
-            resolve(records);
-          });
+            console.log('Updated records: ' , records)
+            resolve(records)
+          })
         }
       })
 
     } catch(e) {
-      console.error('SaveArray Object to Airtable error (do you have permission?)', e); return; 
+      console.error('SaveArray Object to Airtable error (do you have permission?)', e); return 
     }
   }
 
@@ -833,7 +1013,7 @@ class Cytosis {
   //    an object: the deleted record object as returned from Airtable
   static delete (tableName, cytosis, recordId) {
 
-    if(!Cytosis.preCheck(cytosis.apiKey,cytosis.airBase))
+    if(!Cytosis.preCheck(cytosis))
       return
 
     let base = cytosis.base
@@ -842,14 +1022,14 @@ class Cytosis {
         if (recordId) {
           base(tableName).destroy(recordId, function(err, record) {
             if (err) { console.error('Airtable async delete error', err); reject(err); return }
-            console.log('Deleted record: ' , record.getId(), record.fields['Name']);
-            resolve(record);
-          });
+            console.log('Deleted record: ' , record.getId(), record.fields['Name'])
+            resolve(record)
+          })
         }
       })
 
     } catch(e) {
-      console.error('Delete Object from Airtable error (do you have permission?)', e); return; 
+      console.error('Delete Object from Airtable error (do you have permission?)', e); return 
     }
   }
 
@@ -934,6 +1114,7 @@ class Cytosis {
     return {
       fields: record.fields,
       id: record.id,
+      // _rawJson: record._rawJson,
       // _table: {
       //   name: record._table.name,
       //   _base: {
@@ -960,7 +1141,7 @@ class Cytosis {
     _cytosis['airBase'] = cytosis['airBase']
     _cytosis['apiKey'] = cytosis['apiKey']
     _cytosis['endpointUrl'] = cytosis['endpointUrl']
-    _cytosis['routeName'] = cytosis['routeName']
+    _cytosis['routeDetails'] = cytosis['routeDetails']
     _cytosis['tables'] = {}
 
     Object.keys(cytosis.tables).map((tableName) => {
@@ -978,48 +1159,48 @@ class Cytosis {
 
       Introspection usage:
 
-      const test = this.$cytosis.findOne('home-mission', this.$store.state['Content'] );
+      const test = this.$cytosis.findOne('home-mission', this.$store.state['Content'] )
 
       let _this = this
       Object.defineProperty(test, 'blankFields', {
         get: _this.$cytosis.blankFields
-      });
+      })
 
   */
-  static blankFields () {
-    if (typeof this.fields !== 'object' || this.fields === null)
-      return {};
+  // static blankFields () {
+  //   if (typeof this.fields !== 'object' || this.fields === null)
+  //     return {}
       
-    const entries = Object.entries(this.fields);
-    const blankFields = {};
+  //   const entries = Object.entries(this.fields)
+  //   const blankFields = {}
       
-    for (const [key, settings] of entries) {
-      console.log('entries:', entries, key, settings)
-      if (settings === undefined) {
-        const error = new Error(
-          `Improper Field Definition in Table '${this.name}'.\n` +
-          `Received: ${settings}`
-        );
-        error.name = 'TableError';
-        throw error;
-      }
-      if (typeof settings.name !== 'string') {
-        const error = new Error(
-          `Improper Field Definition in Table '${this.name}'.\n` +
-          `Expected 'name' to be a string.\n` +
-          `Received: ${settings}`
-        );
+  //   for (const [key, settings] of entries) {
+  //     console.log('entries:', entries, key, settings)
+  //     if (settings === undefined) {
+  //       const error = new Error(
+  //         `Improper Field Definition in Table '${this.name}'.\n` +
+  //         `Received: ${settings}`
+  //       )
+  //       error.name = 'TableError'
+  //       throw error
+  //     }
+  //     if (typeof settings.name !== 'string') {
+  //       const error = new Error(
+  //         `Improper Field Definition in Table '${this.name}'.\n` +
+  //         `Expected 'name' to be a string.\n` +
+  //         `Received: ${settings}`
+  //       )
 
-        error.name = 'TableError';
-        throw error;
-      }
-      const args = [settings.name, undefined, { ...settings }];
-      const blankField = typeof settings.type !== 'function' ? new UnknownField(...args) : new settings.type(...args);
-      blankFields[key] = blankField;
-    }
+  //       error.name = 'TableError'
+  //       throw error
+  //     }
+  //     const args = [settings.name, undefined, { ...settings }]
+  //     const blankField = typeof settings.type !== 'function' ? new UnknownField(...args) : new settings.type(...args)
+  //     blankFields[key] = blankField
+  //   }
 
-    return blankFields;
-  }
+  //   return blankFields
+  // }
 
 
 
@@ -1030,7 +1211,7 @@ class Cytosis {
 
 
   // Given a list of recordIds, gets the actual linked records
-  // getRecord works a little better, but requires multiple API calls; this one uses local data
+  // getRecord works a little better, but requires multiple API calls this one uses local data
   // converts a list of record ids into a name (e.g. converts an Id from Tags to the name or the entire object)
   // these are stored inside the data category
   // old version would take a tableName, new one just takes a table
@@ -1065,7 +1246,7 @@ class Cytosis {
   // Otherwise returns the array of contents that map to the original array
   //  - useful for getting image attachments and multiple select list values
   // FUTURE: eventually should work on duplicate names, but that gets super confusing to 
-  // handle returned values; findReplacing works really well if names are treated unique
+  // handle returned values findReplacing works really well if names are treated unique
   // Input:
   //    recordArray: array of Airtable record objects that we want more information on
   //    fieldName: name of the field/column to retrieve
@@ -1130,7 +1311,7 @@ class Cytosis {
   // Input:
   //    recordArray: an array of Airtable records
   // Output:
-  //    an array of names (string values; NOT an array of Airtable objects)
+  //    an array of names (string values NOT an array of Airtable objects)
   static getNames(recordArray, fieldName='Name') {
     let results = []
     for (let record of recordArray) {
@@ -1157,24 +1338,10 @@ class Cytosis {
   }
 
 
-  // adds "preset" API and Base keys for future instances
-  // Input:
-  //    apiKey, airBase, tables, and tableQuery ;)
-  // Output:
-  //    nothing, but after Cytosis.configure, every time Cytosis is instantiated w/o options
-  //    these will be used
-  static configure({apiKey, airBase, tables, tableQuery, options}) {
-    Cytosis.apiKey = apiKey;
-    Cytosis.airBase = {id: airBaseId};
-    Cytosis.airBase.tables = tables || []
-    Cytosis.airBase.tableQuery = tableQuery || 'tables';
-    Cytosis.airBase.options = options || 'Grid view';
-  }
-
 
 
   // Splits an object into many parts to be stored to Airtable
-  // stores them as JSON; useful for using Airtable as a "data warehouse"
+  // stores them as JSON useful for using Airtable as a "data warehouse"
   // 
   // Takes an Airtable record object { ... data ..., 'hugeField': {tons of data} }
   // and breaks it into multiple chunks (Airtable has a size limit of 100,000 chars for Long Text fields)
@@ -1286,13 +1453,13 @@ class Cytosis {
   //    sortFn: a sort function
   static sort(recordArray, sortBy='Name', sortFn=undefined) {
     recordArray.sort(sortFn || function(a,b) {
-      var nameA = a.fields[sortBy].toUpperCase(); // ignore upper and lowercase
-      var nameB = b.fields[sortBy].toUpperCase(); // ignore upper and lowercase
+      var nameA = a.fields[sortBy].toUpperCase() // ignore upper and lowercase
+      var nameB = b.fields[sortBy].toUpperCase() // ignore upper and lowercase
       if (nameA < nameB) { return -1 }
       if (nameA > nameB) { return 1 }
-      return 0;
+      return 0
     })
-    return recordArray;
+    return recordArray
   }
 
 
@@ -1303,12 +1470,12 @@ class Cytosis {
   //    str: search string
   //    sourceArray: array of records you're looking through
   //    searchByArray: array of field/column names e.g. ['Name','Tags']
-  //    linkedTableArray: array of Airtable arrays; sources for any linked columns, e.g. for tags
+  //    linkedTableArray: array of Airtable arrays sources for any linked columns, e.g. for tags
   // Output:
   //    array of filter-searched Airtable objects
   static search(str, sourceArray, searchByArray, linkedTableArray=[]) {
     if(!str)
-      return sourceArray // pass through if no search string; simplifies chaining
+      return sourceArray // pass through if no search string simplifies chaining
 
     return sourceArray.filter(function(obj) {
       let searchterm = str.toLowerCase()
@@ -1387,8 +1554,8 @@ class Cytosis {
   // useful for making combinations for infographics or tables for tallying, etc.
   // takes an array of objects in the form of
   // [{data: (tags object), fields: ['Name', 'Notes']}, {data: (people object), fields: ['Name', 'Tags']}]
-  // - fields is optional; leaving it out joins all fields
-  // also takes a function that determines the name of each row; if none given, the new object combines the first fields of each object
+  // - fields is optional leaving it out joins all fields
+  // also takes a function that determines the name of each row if none given, the new object combines the first fields of each object
   // identical field names will be concatenated
   // static join (tables, nameFn=undefined) {
   //   let result = {}

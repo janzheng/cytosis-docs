@@ -13,7 +13,7 @@
 
 
 <script>
-  import { content } from './stores.js';
+  import { content } from '../stores.js';
 	import _cytosis from 'cytosis'
 	import marked from 'marked'
 
@@ -33,7 +33,7 @@
 </script>
 
 <style type="text/scss">
-  @import './styles/core';
+  @import '../styles/core';
 
 </style>
 

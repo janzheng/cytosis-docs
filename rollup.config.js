@@ -6,19 +6,16 @@ import livereload from 'rollup-plugin-livereload';
 import { terser } from 'rollup-plugin-terser';
 import babel from 'rollup-plugin-babel';
 import json from 'rollup-plugin-json';
-
+import {config} from 'dotenv';
+import replace from '@rollup/plugin-replace';
 // import autoPreprocess from 'svelte-preprocess';
 import { scss } from 'svelte-preprocess';
-
-// import { join } from 'path';
-// import {config} from 'dotenv';
-// import replace from '@rollup/plugin-replace';
-
+import sass from 'rollup-plugin-sass';
 
 const production = !process.env.ROLLUP_WATCH;
 
 export default {
-	input: 'src/main.js',
+	input: 'src/bundle.js',
 	output: {
 		sourcemap: true,
 		format: 'iife',
@@ -56,27 +53,18 @@ export default {
 			dev: !production,
 			// we'll extract any component CSS out into
 			// a separate file — better for performance
-
-
-			// scss
-			// this results in smaller CSS files
-			// cascade: false,
-			// preprocess: {
-			// 	style: sass({
-   //        includePaths: [
-   //          // Allow imports from 'node_modules'
-   //          join(__dirname, 'node_modules'),
-   //        ]}, 
-   //        { name: 'scss' }
-   //      ),
-			// },
 			// preprocess: autoPreprocess(),
 			preprocess: [
-				scss({  /** options */ })
+				scss(),
 			],
-			css: css => {
-				css.write('public/bundle.css');
-			}
+			// css: css => {
+			// 	css.write('public/bundle.css');
+			// }
+		}),
+
+		sass({
+			// this is translates coeur straight into the css file
+			output: true,
 		}),
 
 		// If you have external dependencies installed from
@@ -100,6 +88,6 @@ export default {
 		production && terser()
 	],
 	watch: {
-		clearScreen: false
+		clearScreen: true
 	}
 };
