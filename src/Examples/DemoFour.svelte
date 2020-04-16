@@ -1,0 +1,98 @@
+<svelte:options accessors/>
+
+<div class="">
+	<h2>{ title }</h2>
+	<div>{@html marked(description) }</div>
+	<div>{@html marked(more) }</div>
+
+	<CytosisWip
+	  apiKey={'keygfuzbhXK1VShlR'} 
+	  baseId={'appc0M3MdTYATe7RO'} 
+	  configName={'basic-demo-1'}
+	  routeDetails={'Cytosis docs 4'}
+	  bind:isLoading={cytosisLoading}
+	  bind:cytosis={cytosisObject}
+	>
+		{#if cytosisLoading}
+			... loading Cytosis object ...
+		{/if}
+
+		{#if cytosisObject}
+			<div class="_grid-2-xs _margin-bottom">
+				<button class="_button __short __outline _margin-none"
+					on:click={() => {
+						console.log('re-initializing config', cytosisObject, newConfigObject)
+						const config = newConfigObject || cytosisObject.configObject
+						Cytosis.initFromConfig(cytosisObject, config)
+					}}>Re-initialize Config</button>
+				<button class="_button __short __outline _margin-none"
+					on:click={() => {
+						console.log('reloading data')
+						Cytosis.loadCytosisData(cytosisObject).then((cytosis) => {
+							cytosisObject = cytosis // force reactivity
+						})
+					}}>Reload Data</button>
+			</div>
+
+	  	<div class="_card _padding __flat">{@html marked(cytosisObject.results['Site Content'][0].fields['Markdown'])}</div>
+
+			<div class="_margin-bottom">
+				<textarea class="configTextarea" name="config" rows="30" value={configJson} 
+					on:change={() => {
+						newConfigObject = JSON.parse(this.value)
+					}} />
+			</div>
+
+		{/if}
+	</CytosisWip>
+  
+</div>
+
+
+
+
+<script>
+  import CytosisWip from '../components/CytosisWip.svelte'
+	import Cytosis from '../cytosis_wip/cytosis'
+
+	import marked from 'marked'
+
+  marked.setOptions({
+    gfm: true,
+    breaks: true,
+  })
+
+  export let title = `1. Barebones Demo`
+  export let description = `This demo retrieves a table from the given Base, by reading a record in '_cytosis'`
+  export let more = `
+This demo by default gets a config from 'basic-demo-1' from the '_cytosis' table — you can change the view from 'basic-demo-1--view' to 'basic-demo-4--view' see different content get pulled in. Make sure to reload config and data!
+
+	`
+
+  let cytosisObject
+  let cytosisLoading = false
+  let configObject, configJson, newConfigObject
+
+  $: if(cytosisObject) {
+  	configObject = cytosisObject.configObject
+  	configJson = JSON.stringify(configObject, undefined, 4)
+  }
+
+</script>
+
+
+
+<style type="text/scss">
+  @import '../styles/core';
+
+
+  .configTextarea {
+  	width: 100% !important;
+  }
+
+</style>
+
+
+
+
+

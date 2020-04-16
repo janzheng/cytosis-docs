@@ -1,10 +1,8 @@
 
 
 	<div class="">
-		<h4>Demo Sandbox</h4>
-
-		<p>Play around!
-		</p>
+		<h2>{ title }</h2>
+		<div>{@html marked(description) }</div>
 
 		<CytosisPaginate
 		  apiKey={'keygfuzbhXK1VShlR'} 
@@ -55,12 +53,16 @@
 
 <script>
   import CytosisPaginate from '../components/CytosisPaginate.svelte'
-	// import marked from 'marked'
+	import marked from 'marked'
 
- //  marked.setOptions({
- //    gfm: true,
- //    breaks: true,
- //  })
+  marked.setOptions({
+    gfm: true,
+    breaks: true,
+  })
+
+  export let title = `X. Sandbox`
+  export let description = `This is a sandbox. Have fun!`
+
 
   let cytosisObject
   let data, items, isDone

@@ -26,7 +26,7 @@ class Cytosis {
     this.baseId = opts.baseId
     this.routeDetails = opts.routeDetails // "routeDetails" or other kind of identifier. Helps w/ debugging
 
-    this.configObject = opts.configObject || {} // 
+    this.configObject = opts.configObject || {} // store the latest config for cache, backup, or review
     this.bases = opts.bases || []
     this.tableOptions = opts.tableOptions || {view: "Grid view", keyword: undefined}
 
@@ -60,7 +60,7 @@ class Cytosis {
 
       // load config + data if given a configName
       // this loads the 
-      _this.init().then((loaded) => {
+      Cytosis.initCytosis(_this).then((loaded) => {
 
         // only return config and don't load tables
         if(_this.getConfigOnly) {
@@ -72,19 +72,10 @@ class Cytosis {
           console.log('[Cytosis] _cytosis initiated:', _this.bases)
           // then retrieve the actual data
 
-          Cytosis.getTables({
-            cytosis: _this, 
-            bases: _this.bases,
-            routeDetails: _this.routeDetails
-          }).then((_results) => {
-
-            console.log('Cytosis Base results:', _results)
-            _this.results = { ... _this.results, ... _results }
-            _this._lastUpdated = new Date()
-            resolve(_this)
-          }, (err) => {
-            reject(new Error(`[Cytosis/init] Cytosis initialization error: Couldn't retrieve all tables from your Base. Please double check our 'tables' and 'views' column to make sure the table names match and corresponding views exist`, err))
+          Cytosis.loadCytosisData(_this).then((newCytosis) => {
+            resolve(newCytosis)
           })
+
         } else {
           reject(_this)
         }
@@ -111,148 +102,7 @@ class Cytosis {
 
 
   // Internal
-  // formerly initConfig() initializes _config table from Airtable pulls from _cytosis if no init data
-  // will overwrite current table data useful to rehydrate data
-  // (but pulls in EVERYTHING from Airtable)
-  // assumes you want to "reinitialize" with new data if passed 'false',
-  // skips initialization if data already exists
-  
 
-  // if given bases will skip all of setup and presume we can pull from the Base
-  // if given a configObject, we can pull the setup data from the config object 
-  init () {
-    // console.log('Starting cytosis')
-    const _this = this
-
-    // console.log('initializing from index: ', configName)
-
-    return new Promise(function(resolve, reject) {
-
-
-      // if config exists, we skip retrieving _cytosis and go right to setup this saves some fetches
-      if(_this.config) {
-        // console.log('config found! skipping _cytosis', _this.config)
-        // loadConfig sets the bases
-        loadFromConfig(_this.config)
-        resolve(true)
-      }
-
-      // if we provided tables, but don't have config, 
-      // we still skip config — we just default to whatever options were passed in
-      if(_this.bases && _this.bases.length > 0)
-        resolve(true)
-
-      // this loads the config table into _this.config as an object
-      // also fills out _this.options and _this.bases
-      const loadFromConfig = function(_config) {
-        _this['configObject'] = _config // this needs to be the _cytosis array
-
-        // console.log('loadFromConfig....', _config, _config[_this.configTableName])
-        // this requires a table named '_cytosis' with a row (configName) that indicates where the information is coming from
-        // need column 'Tables' with a Multiple Select of all the table names in the base
-        // (this is required b/c Airtable API won't let you get all table names)
-        // init tables from config if they don't exist
-        for(let config of _config[_this.configTableName]) {
-
-
-          // Option 1: find all the options in the Tables list
-          if ( config.fields['Name'] == _this.configName && config.fields['Tables']) {
-
-            // some queries can contain options like fields, sort, maxRecords etc.
-            // these can drastically cut back the amount of retrieved data
-            const options = {
-              fields: config.fields['fields'], // fields to retrieve in the results
-              filter: config.fields['filterByFormula'],
-              maxRecords: config.fields['maxRecords'],
-              pageSize: config.fields['pageSize'],
-              sort: config.fields['sort'] ? JSON.parse(config.fields['sort'])['sort'] : undefined, // needs to be of format : "{sort: [blahblah]}"
-              view: config.fields['view'],
-              matchKeywordWithField: config.fields['matchKeywordWithField'],
-              matchStyle: config.fields['matchStyle'], // how are keywords matched?
-            }
-
-            // tables is an array of strings that say which tables (tabs) in Airtable to pull from
-            // _this.bases = config.fields['Tables']
-            // _this.tableOptions = options
-            _this.bases = [{
-              query: _this.configName,
-              tables: config.fields['Tables'],
-              options,
-            }]
-          } 
-
-          // Option 2: find all the tableQueries in the linkedQueries (this lets you pull in mulitple queries) list
-          else if ( config.fields['Name'] == _this.configName && config.fields['LinkedconfigNames']) {
-            const linkedQueries = config.fields['LinkedconfigNames']
-            // console.log('Linked Query Names: ', linkedQueries)
-
-            // this is a special case where instead of an array of strings, it's an
-            // array of objects {query (string), tables (array of strings), options (object)}
-            let bases = []
-            // for each linked query, find and store the correct query
-            linkedQueries.map((linkedquery) => {
-              _config._cytosis.map((query) => {
-                if(linkedquery == query.fields['Name']) {
-                  // console.log('match:', linkedquery, query)
-
-                  const options = {
-                    fields: query.fields['fields'], // fields to retrieve in the results
-                    filter: query.fields['filterByFormula'],
-                    maxRecords: query.fields['maxRecords'],
-                    pageSize: query.fields['pageSize'],
-                    sort: query.fields['sort'] ? JSON.parse(query.fields['sort'])['sort'] : undefined, // needs to be of format : "{sort: [blahblah]}"
-                    view: query.fields['view'],
-                  }
-
-                  bases.push({
-                    query: linkedquery,
-                    tables: query.fields['Tables'],
-                    options: options
-                  })
-                }
-              })
-            })
-
-            _this.bases = bases
-          }
-        }
-      }
-
-      // if no config or tables setup, we grab config table
-      if(!_this.config) {
-
-        console.log('[Cytosis/init] Loading config from table:', _this.configTableName)
-
-        // if no table names are provided, it looked for a special '_cytosis' tab
-        // this is required to initialize the Cytosis object
-
-        Cytosis.getTables({
-          cytosis: _this, 
-          bases: [{
-            tables: [_this.configTableName], 
-            options: {},
-          }],
-          routeDetails: `init-${_this.configTableName}-${_this.routeDetails}`,
-        }).then( (_config) => {
-
-          if(!_config || _config[_this.configTableName].length == 0) {
-            reject(new Error(`[Cytosis] — couldn’t find a reference table named ${_this.configTableName} in the base with reference field: :${_this.configName} or 'tables' filled out with the names of tables to load`))
-          }
-
-          if(_config) {
-            loadFromConfig(_config)
-          }
-
-          // console.log('Cytosis tables: ', _this.airBase, _this.tableNames)
-          // return the initiated cytosis object on completion
-          resolve(true)
-        }, (err) => {
-          reject(new Error(`[Cytosis] Couldn't retrieve Config object from Airtable`, err))
-        })
-      }
-
-    })
-  }
 
   find (findStr, fields=['Name']) {
     return Cytosis.find(findStr, this.results, fields)
@@ -294,8 +144,6 @@ class Cytosis {
   saveLinkedTable (stringList, targetTableName, sourceTable, colName='Name') {
     return Cytosis.saveLinkedTable(stringList, targetTableName, sourceTable, this, colName)
   }
-
-
 
 
 
@@ -421,7 +269,6 @@ class Cytosis {
         for (let tableName of tableNames) {
         // for (let tableName of !cytosis.tablesLoaded.includes(tableNames)) {
 
-          // console.log('cytosis getting tableName:', tableName, cytosis.tablesLoaded.includes(tableNames))
           let list = []
 
           if(cytosis.tablesLoaded.includes(tableName)) {
@@ -445,10 +292,10 @@ class Cytosis {
     }
 
 
-    // console.log('getTables:', bases, ' >> ' , cytosis.bases)
     bases.map((base) => {
       // need to slow it down
       // setTimeout(function(){
+
       getTablePromise({
         tableNames: base.tables, // array of strings 
         options: base.options || {},
@@ -470,6 +317,7 @@ class Cytosis {
         // _this.airtable = finalObj
         // _this.results = finalObj
 
+        // console.log('getTables returning:', finalObj, tables)
         return finalObj // return as a one promise object
       }, (err) => {
         console.error("[Cytosis/getTables] A table errored out or timed out: ", err)
@@ -618,6 +466,224 @@ static getPageTable ({cytosis, routeDetails, apiKey, baseId, tableName, options}
 
   // })
 }
+
+
+
+
+
+
+
+
+
+
+
+// formerly internal init
+// formerly initConfig() initializes _config table from Airtable pulls from _cytosis if no init data
+// will overwrite current table data useful to rehydrate data
+// (but pulls in EVERYTHING from Airtable)
+// assumes you want to "reinitialize" with new data if passed 'false',
+// skips initialization if data already exists
+
+// if given bases will skip all of setup and presume we can pull from the Base
+// if given a configObject, we can pull the setup data from the config object 
+static initCytosis (cytosis) {
+  // console.log('Starting cytosis', cytosis)
+  const _this = cytosis
+
+  // console.log('initializing from index: ', configName)
+
+  return new Promise(function(resolve, reject) {
+
+
+    // if config exists, we skip retrieving _cytosis and go right to setup this saves some fetches
+    if(_this.config) {
+      // console.log('config found! skipping _cytosis', _this.config)
+      // loadConfig sets the bases
+      initFromConfig(_this.config)
+      resolve(true)
+    }
+
+    // if we provided tables, but don't have config, 
+    // we still skip config — we just default to whatever options were passed in
+    if(_this.bases && _this.bases.length > 0)
+      resolve(true)
+
+
+    // if no config or tables setup, we grab config table
+    if(!_this.config) {
+
+      console.log('[Cytosis/init] Loading config from table:', _this.configTableName)
+
+      // if no table names are provided, it looked for a special '_cytosis' tab
+      // this is required to initialize the Cytosis object
+
+      Cytosis.getTables({
+        cytosis: _this, 
+        bases: [{
+          tables: [_this.configTableName], 
+          options: {},
+        }],
+        routeDetails: `init-${_this.configTableName}-${_this.routeDetails}`,
+      }).then( (_config) => {
+
+        if(!_config || _config[_this.configTableName].length == 0) {
+          reject(new Error(`[Cytosis] — couldn’t find a reference table named ${_this.configTableName} in the base with reference field: :${_this.configName} or 'tables' filled out with the names of tables to load`))
+        }
+
+        if(_config) {
+          Cytosis.initFromConfig(cytosis, _config)
+        }
+
+        // console.log('Cytosis tables: ', _this.airBase, _this.tableNames)
+        // return the initiated cytosis object on completion
+        resolve(true)
+      }, (err) => {
+        reject(new Error(`[Cytosis] Couldn't retrieve Config object from Airtable`, err))
+      })
+    }
+
+  })
+}
+
+
+
+// used to be part of initCytosis — separated so configs can be passed in separately
+// this loads the config table into cytosis.config as an object
+// also fills out cytosis.options and cytosis.bases
+// output: it changes cytosis directly; doesn't return anything
+static initFromConfig (cytosis, _config) {
+  cytosis.configObject = _config || cytosis.configObject // this needs to be the _cytosis array
+
+  // console.log('initFromConfig....', _config, _config[cytosis.configTableName])
+  // this requires a table named '_cytosis' with a row (configName) that indicates where the information is coming from
+  // need column 'Tables' with a Multiple Select of all the table names in the base
+  // (this is required b/c Airtable API won't let you get all table names)
+  // init tables from config if they don't exist
+  for(let config of _config[cytosis.configTableName]) {
+
+
+    // Option 1: find all the options in the Tables list
+    if ( config.fields['Name'] == cytosis.configName && config.fields['Tables']) {
+
+      // some queries can contain options like fields, sort, maxRecords etc.
+      // these can drastically cut back the amount of retrieved data
+      const options = {
+        fields: config.fields['fields'], // fields to retrieve in the results
+        filter: config.fields['filterByFormula'],
+        maxRecords: config.fields['maxRecords'],
+        pageSize: config.fields['pageSize'],
+        sort: config.fields['sort'] ? JSON.parse(config.fields['sort'])['sort'] : undefined, // needs to be of format : "{sort: [blahblah]}"
+        view: config.fields['view'],
+        matchKeywordWithField: config.fields['matchKeywordWithField'],
+        matchStyle: config.fields['matchStyle'], // how are keywords matched?
+      }
+
+      // tables is an array of strings that say which tables (tabs) in Airtable to pull from
+      // cytosis.bases = config.fields['Tables']
+      // cytosis.tableOptions = options
+      cytosis.bases = [{
+        query: cytosis.configName,
+        tables: config.fields['Tables'],
+        options,
+      }]
+    } 
+
+    // Option 2: find all the tableQueries in the linkedQueries (this lets you pull in mulitple queries) list
+    else if ( config.fields['Name'] == cytosis.configName && config.fields['LinkedconfigNames']) {
+      const linkedQueries = config.fields['LinkedconfigNames']
+      // console.log('Linked Query Names: ', linkedQueries)
+
+      // this is a special case where instead of an array of strings, it's an
+      // array of objects {query (string), tables (array of strings), options (object)}
+      let bases = []
+      // for each linked query, find and store the correct query
+      linkedQueries.map((linkedquery) => {
+        _config._cytosis.map((query) => {
+          if(linkedquery == query.fields['Name']) {
+            // console.log('match:', linkedquery, query)
+
+            const options = {
+              fields: query.fields['fields'], // fields to retrieve in the results
+              filter: query.fields['filterByFormula'],
+              maxRecords: query.fields['maxRecords'],
+              pageSize: query.fields['pageSize'],
+              sort: query.fields['sort'] ? JSON.parse(query.fields['sort'])['sort'] : undefined, // needs to be of format : "{sort: [blahblah]}"
+              view: query.fields['view'],
+            }
+
+            bases.push({
+              query: linkedquery,
+              tables: query.fields['Tables'],
+              options: options
+            })
+          }
+        })
+      })
+
+      cytosis.bases = bases
+    }
+  }
+}
+
+
+
+
+
+// wrapper / helper for getTables — just pass in a Cytosis object
+// used to be in the class initializer and pulled out
+// sets Cytosis' tables
+// sets the new results by object reference into cytosis; doesn't return anything
+static loadCytosisData (cytosis, append=false) {
+  const _this = cytosis
+
+  cytosis.tablesLoaded = [] // reset the tables loaded to allow for re-loading
+
+  return new Promise((resolve, reject) => {
+    Cytosis.getTables({
+      cytosis: _this, 
+      bases: _this.bases,
+      routeDetails: _this.routeDetails
+    }).then((_results) => {
+      if(append)
+        _this.results = { ... _this.results, ... _results }
+      else
+        _this.results = _results 
+
+      _this._lastUpdated = new Date()
+      resolve(_this)
+    }, (err) => {
+      reject(new Error(`[Cytosis/loadCytosisData] Retrieval error: Couldn't retrieve all tables from your Base. Please double check our 'tables' and 'views' column to make sure the table names match and corresponding views exist`, err))
+    })
+
+  })
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -23,8 +23,17 @@ Quick Notes
 ```
 
 
-- 4/15/2020
+
+
+
+
+- 4/16/2020
 	- `loadConfig` changed to `loadFromConfig` 
+	- changed `init` to a static fn `initCytosis`
+	- broke up original init into static functions to allow for reloading config and table data externally
+
+- 4/15/2020
+	- added `getPageTable` as a way to get paginated data; separate from Cytosis
 
 
 - 4/14/2020
@@ -38,7 +47,6 @@ Quick Notes
 	- changed "cytosis.tableNames" to a "cytosis.bases", and each "base" allows for a different API key and baseID — also moved the new getBase into `getTablePromise` (and out of airtableFetch) — this alllows each getTablePromise to get from a different base, but each table retrieved won't keep hitting Airtable Auth
 	- added cleanRecord to airtableFetch, meaning each record retrieved is sanitied of helper fns and lots of bloat
 	- removed `getConfig` and instead added `cytosis.getConfigOnly` that stops init from getting the rest of the tables
-	- added `getPageTable` as a way to get paginated data; separate from Cytosis
 
 - 4/13/2020
 	- removed returning object and stopping init if not given a queryName — new thinking is that you only init when you want something from AT
