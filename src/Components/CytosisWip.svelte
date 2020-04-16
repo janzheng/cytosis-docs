@@ -29,7 +29,7 @@
 	export let isError = false
 
 	// required values
-	export let apiKey, baseId, configName, routeDetails
+	export let apiKey, apiEditorKey, baseId, configName, routeDetails, bases
 	export let tableName = undefined // convenience — gets the table you want 
 
 	// bind to these value
@@ -50,6 +50,8 @@
 
 	    const _cytosis = await new Cytosis({
 	      apiKey, 
+	      apiEditorKey,
+	      bases,
 	      baseId,
 	      configName,
 	      routeDetails,

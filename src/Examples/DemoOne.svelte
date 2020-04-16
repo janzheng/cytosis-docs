@@ -20,7 +20,7 @@
 	<CytosisWip
 	  apiKey={'keygfuzbhXK1VShlR'} 
 	  baseId={'appc0M3MdTYATe7RO'} 
-	  configName={'basic-demo-1'}
+	  configName={'content-1'}
 	  routeDetails={'Cytosis docs basic demo one'}
 	  bind:isLoading={cytosisLoading}
 	  bind:cytosis={cytosisObject}

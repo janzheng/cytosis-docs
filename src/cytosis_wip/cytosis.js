@@ -207,7 +207,7 @@ class Cytosis {
   /*
       bases is built from a config file, or can be sent in directly looks like:
       [{
-        query: "basic-demo-1",
+        query: "content-1",
         tables: ["Site Content"],
         options: {
           fields: undefined,
@@ -215,7 +215,7 @@ class Cytosis {
           maxRecords: 1,
           pageSize: undefined,
           sort: undefined,
-          view: "basic-demo-1--view",
+          view: "content-1--view",
           matchKeywordWithField: undefined,
           matchStyle: undefined,
         }
@@ -335,6 +335,10 @@ class Cytosis {
         }
         // _this.airtable = finalObj
         // _this.results = finalObj
+
+        if(tables.length == 0) {
+          console.warn(`[Cytosis/getTables] No tables found for your table configuration. Please check your configName, views, and filters for base:`,  base)
+        }
 
         // console.log('getTables returning:', finalObj, tables)
         return finalObj // return as a one promise object

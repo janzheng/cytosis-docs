@@ -8,7 +8,7 @@
 	<CytosisWip
 	  apiKey={'keygfuzbhXK1VShlR'} 
 	  baseId={'appc0M3MdTYATe7RO'} 
-	  configName={'basic-demo-1'}
+	  configName={'content-1'}
 	  routeDetails={'Cytosis docs 4'}
 	  bind:isLoading={cytosisLoading}
 	  bind:cytosis={cytosisObject}
@@ -62,10 +62,10 @@
     breaks: true,
   })
 
-  export let title = `4. Config & data reload/refresh demo`
+  export let title = `4. Config & data reload/refresh`
   export let description = `This demo shows how to retrieve a table from a custom or given config object`
   export let more = `
-This demo by default gets a config from 'basic-demo-1' from the '_cytosis' table — you can change the view from 'basic-demo-1--view' to 'basic-demo-4--view' see different content get pulled in. Make sure to reload config and data!
+This demo by default gets a config from 'content-1' from the '_cytosis' table — you can change the view from 'content-1--view' to 'content-2--view' see different content get pulled in. Make sure to reload config and data!
 
 	`
 

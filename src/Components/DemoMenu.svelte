@@ -21,6 +21,8 @@
   import DemoTwo from '../examples/DemoTwo.svelte'
   import DemoThree from '../examples/DemoThree.svelte'
   import DemoFour from '../examples/DemoFour.svelte'
+  import DemoFive from '../examples/DemoFive.svelte'
+
   import DemoSandbox from '../examples/DemoSandbox.svelte'
 
   export let demoName
@@ -31,7 +33,8 @@
     'demoOne': {name: "Demo One", component: DemoOne, title: "1. Basics", description: "This demo retrieves a table from the given Base, by reading a record in '_cytosis'"},
     'demoTwo': {name: "Demo Two", component: DemoTwo, title: "2. Get a table of items", description: "This demo retrieves a ton of items from the Items Table in a non-paginated manner"},
     'demoThree': {name: "Demo Three", component: DemoThree, title: "3. Get a table of items in a paginated way", description: "This demo shows how to use 'getPageTable'"},
-    'demoFour': {name: "Demo Four", component: DemoFour, title: "4. Custom configs and tables Demo", description: "This is how to use custom configs and tables without needing a '_cytosis' table"},
+    'demoFour': {name: "Demo Four", component: DemoFour, title: "4. Config & data reload/refresh", description: "This is how to use custom configs and tables without needing a '_cytosis' table"},
+    'demoFive': {name: "Demo Five", component: DemoFive, title: "5. Bypassing config and directly setting your bases ", description: "This demo shows how to completely bypass config, to speed up loading"},
     'sandbox': {name: "Sandbox", component: DemoSandbox, title: "Sandbox", description: "This is a sandbox. Have fun!"},
   }
 

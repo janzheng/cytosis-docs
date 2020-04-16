@@ -5,46 +5,45 @@
 	<div>{@html marked(description) }</div>
 	<div>{@html marked(more) }</div>
 
-	<CytosisWip
-	  apiKey={'keygfuzbhXK1VShlR'} 
-	  baseId={'appc0M3MdTYATe7RO'} 
-	  configName={'basic-demo-1'}
-	  routeDetails={'Cytosis docs 4'}
-	  bind:isLoading={cytosisLoading}
-	  bind:cytosis={cytosisObject}
-	>
-		{#if cytosisLoading}
-			... loading Cytosis object ...
-		{/if}
 
-		{#if cytosisObject}
-			<div class="_grid-2-xs _margin-bottom">
-				<button class="_button __short __outline _margin-none"
-					on:click={() => {
-						console.log('re-initializing config', cytosisObject, newConfigObject)
-						const config = newConfigObject || cytosisObject.configObject
-						Cytosis.initFromConfig(cytosisObject, config)
-					}}>Re-initialize Config</button>
-				<button class="_button __short __outline _margin-none"
-					on:click={() => {
-						console.log('reloading data')
-						Cytosis.loadCytosisData(cytosisObject).then((cytosis) => {
-							cytosisObject = cytosis // force reactivity
-						})
-					}}>Reload Data</button>
-			</div>
+	<div class="_grid-2-1-xs _margin-bottom">
 
-	  	<div class="_card _padding __flat">{@html marked(cytosisObject.results['Site Content'][0].fields['Markdown'])}</div>
+		<textarea class="configTextarea" name="config" rows="11" 
+			value={JSON.stringify(bases, undefined, 4)}
+			on:change={() => {
+				loadCytosis = false
+				bases = JSON.parse(this.value)
+			}}
+		/>
+ 
+		<div class="">
+			<button class="_button __short __outline __width-full _margin-none"
+				on:click={() => {
+					loadCytosis = true
+				}}>Load Cytosis
+			</button>
+		</div>
+		
+	</div>
 
-			<div class="_margin-bottom">
-				<textarea class="configTextarea" name="config" rows="30" value={configJson} 
-					on:change={() => {
-						newConfigObject = JSON.parse(this.value)
-					}} />
-			</div>
+	{#if loadCytosis}
+		<CytosisWip
+		  apiKey={'keygfuzbhXK1VShlR'} 
+		  baseId={'appc0M3MdTYATe7RO'}
+		  bases={bases}
+		  bind:isLoading={cytosisLoading}
+		  bind:cytosis={cytosisObject}
+		>
+			{#if cytosisLoading}
+				... loading Cytosis object ...
+			{/if}
 
-		{/if}
-	</CytosisWip>
+			{#if cytosisObject}
+			
+		  	<div class="_card _padding __flat">{@html marked(cytosisObject.results['Site Content'][0].fields['Markdown'])}</div>			
+			{/if}
+		</CytosisWip>
+  {/if}
   
 </div>
 
@@ -62,21 +61,30 @@
     breaks: true,
   })
 
-  export let title = `4. Config & data reload/refresh demo`
-  export let description = `This demo shows how to retrieve a table from a custom or given config object`
+
+  let loadCytosis = false // gate Cytosis from loading
+
+  export let title = `5. Bypassing config and directly setting your bases `
+  export let description = `This demo shows how to completely bypass config, to speed up loading`
   export let more = `
-This demo by default gets a config from 'basic-demo-1' from the '_cytosis' table — you can change the view from 'basic-demo-1--view' to 'basic-demo-4--view' see different content get pulled in. Make sure to reload config and data!
+This demo shows how to pull data from Cytosis without using a config table like '_cytosis', by passing in an array of 'bases'. Here's an example of what a base config object looks like. (As a note, base config objects are built from the '_cytosis' config table)
 
 	`
 
+  let bases = [{
+	  tables: ["Site Content"],
+	  options: {
+	    "view": "content-2--view",
+	    "maxRecords": 1
+	  }
+  }]
+
   let cytosisObject
   let cytosisLoading = false
-  let configObject, configJson, newConfigObject
 
-  $: if(cytosisObject) {
-  	configObject = cytosisObject.configObject
-  	configJson = JSON.stringify(configObject, undefined, 4)
-  }
+  // $: if(cytosisObject) {
+  // 	configObject = cytosisObject.configObject
+  // }
 
 </script>
 
