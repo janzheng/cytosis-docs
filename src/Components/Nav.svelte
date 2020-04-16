@@ -1,6 +1,6 @@
 <div>
 
-  <h1>Cytosis.js</h1>
+  <a href="/"><h1>Cytosis.js</h1></a>
   <div class="Header-section _margin-bottom-2">
 
     <div class="_grid-2 _grid-gap _margin-bottom-2">

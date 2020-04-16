@@ -1,8 +1,9 @@
 
 
+
 <main class="Home">
   <!-- <HeroSection /> -->
-  <BasicSection />
+  <DemoMenu />
   <FooterSection />
 </main>
 
@@ -11,6 +12,7 @@
 
 <script>
   import { cytosis, makers, dropoff, content } from '../stores.js';
+  import DemoMenu from '../components/DemoMenu.svelte'
 
   // $: if(data) {
   //   cytosis.set(data)

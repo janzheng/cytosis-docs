@@ -204,6 +204,25 @@ class Cytosis {
   //    }
   // getTables (options={}, tables=this.tableNames ) {
   // static getTables ({options, tables=this.tableNames}) {
+  /*
+      bases is built from a config file, or can be sent in directly looks like:
+      [{
+        query: "basic-demo-1",
+        tables: ["Site Content"],
+        options: {
+          fields: undefined,
+          filter: undefined,
+          maxRecords: 1,
+          pageSize: undefined,
+          sort: undefined,
+          view: "basic-demo-1--view",
+          matchKeywordWithField: undefined,
+          matchStyle: undefined,
+        }
+      }]
+
+
+  */
   static getTables ({cytosis, bases, routeDetails}) {
   
     bases = bases || cytosis.bases
