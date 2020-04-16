@@ -12,7 +12,7 @@
     </div>
 
     <div class="_margin-bottom-2">
-      <a href="https://airtable.com/shr5wNiOjGGw1573T">Airtable Demo Base</a>
+      <a href="https://airtable.com/shr2ITCNwUa0UCmPH">Airtable Demo Base</a>
     </div>
 
   </div>
