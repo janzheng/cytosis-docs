@@ -3,11 +3,11 @@
 <main class="Demos">
 
   <h5 class="_font-bold">Cytosis Demo Menu</h5>
-  <nav class=" _margin-bottom-2">
+  <ul class="demo-list _margin-bottom-2">
     {#each Object.keys(demos) as demo}
-      <div><a class={ isActive(demo) } href="/demos/{demo}">{ demos[demo].title }</a> — { demos[demo].description }</div>
+      <li><a class={ isActive(demo) } href="/demos/{demo}">{ demos[demo].title }</a> — { demos[demo].description }</li>
     {/each}
-  </nav>
+  </ul>
 
 </main>
 
@@ -22,6 +22,7 @@
   import DemoThree from '../examples/DemoThree.svelte'
   import DemoFour from '../examples/DemoFour.svelte'
   import DemoFive from '../examples/DemoFive.svelte'
+  import DemoSix from '../examples/DemoSix.svelte'
 
   import DemoSandbox from '../examples/DemoSandbox.svelte'
 
@@ -35,6 +36,9 @@
     'demoThree': {name: "Demo Three", component: DemoThree, title: "3. Get a table of items in a paginated way", description: "This demo shows how to use 'getPageTable'"},
     'demoFour': {name: "Demo Four", component: DemoFour, title: "4. Config & data reload/refresh", description: "This is how to use custom configs and tables without needing a '_cytosis' table"},
     'demoFive': {name: "Demo Five", component: DemoFive, title: "5. Bypassing config and directly setting your bases ", description: "This demo shows how to completely bypass config, to speed up loading"},
+    'demoSix': {name: "Demo Six", component: DemoSix, title: "6. Caching strategies", description: "This demo shows how localStorage, browser-based cache helpers work."},
+
+
     'sandbox': {name: "Sandbox", component: DemoSandbox, title: "Sandbox", description: "This is a sandbox. Have fun!"},
   }
 
@@ -46,6 +50,10 @@
 <style type="text/scss">
   @import '../styles/core';
 
+
+  .demo-list {
+    list-style-type: none;
+  }
 
 </style>
 

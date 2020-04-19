@@ -82,9 +82,9 @@ This demo shows how to pull data from Cytosis without using a config table like 
   let cytosisObject
   let cytosisLoading = false
 
-  // $: if(cytosisObject) {
-  // 	configObject = cytosisObject.configObject
-  // }
+  $: if(cytosisObject) {
+  	console.log('cytosisObject', cytosisObject)
+  }
 
 </script>
 

@@ -26,7 +26,7 @@ class Cytosis {
     this.baseId = opts.baseId
     this.routeDetails = opts.routeDetails // "routeDetails" or other kind of identifier. Helps w/ debugging
 
-    this.configObject = opts.configObject || {} // store the latest config for cache, backup, or review
+    this.configObject = opts.configObject || undefined // store the latest config for cache, backup, or review
     this.bases = opts.bases || []
     this.tableOptions = opts.tableOptions || {view: "Grid view", keyword: undefined}
 
@@ -38,7 +38,14 @@ class Cytosis {
     // for multiple tables, just use two cytosis objects
     this.currentPage = opts.currentPage || 0 // pulls all pages as default
     this.pageDelay = opts.pageDelay || 150
+    this.cacheDuration = 1000 * 60 * 60 * 1 // ttl, 1 hour cache — used to prevent config from being pulled a lot
     this.tablesLoaded = [] // used by pagination to indicate if each table has finished loading
+
+
+    // caching
+    this.useConfigCache = opts.useConfigCache || true // tries a cache strat for config if true
+    this.cacheStrategy = opts.cacheStrategy || 'localStorage'
+    this.configCacheId = opts.configCacheId || undefined  // this is normally set in the cache fn
 
     // these are set by the _config ('_cytosis') table
     // if you provide bases, it'll skip the _config
@@ -388,104 +395,104 @@ static getPageTable ({cytosis, routeDetails, apiKey, baseId, tableName, options}
   // so we must use a callback
   // return new Promise(function(resolve, reject) {
 
-    const baseSelect = base(tableName).select(
-      filterObj
-    )
+  const baseSelect = base(tableName).select(
+    filterObj
+  )
 
-    // const getNextPage = async (results, fetchNextPage) => {
-    //   // await fetchNextPage()
-    //   resolve('banana poo')
-    // }
+  // const getNextPage = async (results, fetchNextPage) => {
+  //   // await fetchNextPage()
+  //   resolve('banana poo')
+  // }
 
-    let fetchResolve, lastBatch
+  let fetchResolve, lastBatch
 
 
-    baseSelect.eachPage(function page(records, fetchNextPage) {
-      // console.log('[Cytosis] Page Fetch for:', tableName, 'routeDetails:', routeDetails, 'page:', currentPage, filterObj, records)
-      currentPage += 1
+  baseSelect.eachPage(function page(records, fetchNextPage) {
+    // console.log('[Cytosis] Page Fetch for:', tableName, 'routeDetails:', routeDetails, 'page:', currentPage, filterObj, records)
+    currentPage += 1
 
-      // check if record exists (paging doesn't trigger 'done'
-      // if we use a promise)
-      if(lastBatch && lastBatch[0].id === records[0].id) {
-        isDone = true
-      }
-
-      if(!isDone) {
-        lastBatch = records
-        records.forEach(function(record) {
-          // console.log('paged record:', record)
-          results = [... results, Cytosis.cleanRecord(record)]
-          // results = Cytosis.cleanRecord(record)
-        })
-      }
-
-      if(fetchResolve)
-        fetchResolve(results)
-
-      callback({
-        results,
-        isDone,
-        getNextPage: async () => { 
-          if(!isDone) {
-            let results = await new Promise((_resolve, _reject) => {
-              fetchResolve = _resolve
-              fetchNextPage()
-            })
-            // getNextPage(fetchNextPage) 
-          }
-
-          return {
-            results,
-            isDone
-          }
-        },
-      })
-
-      // auto fetches everything
-      // fetchNextPage()
-
-      // can't use a promise
-      // resolve({
-      // results,
-      // isDone,
-      // getNextPage: async () => { 
-      //   if(!isDone) {
-      //     let results = await new Promise((_resolve, _reject) => {
-      //       fetchResolve = _resolve
-      //       fetchNextPage()
-      //     })
-      //     // getNextPage(fetchNextPage) 
-      //   }
-
-      //   return {
-      //     results,
-      //     isDone
-      //   }
-      // },
-      // })
-
-    }, function done(err) {
-
-      if (err) { 
-        console.error('[Cytosis/getPageTable] Airtable Fetch Error @routeDetails:', routeDetails)
-        console.error('[Cytosis/getPageTable] Airtable Fetch Error [2]', 'Errored on table:', tableName, 'tableNames:', tableNames)
-        console.error('[Cytosis/getPageTable] Airtable Fetch Error >> error message:', err)
-        
-        // experiment with erroring silently
-        // reject(err)
-        reject(new Error("[Cytosis/getPageTable] No response from Airtable"))
-        // return
-      }
-
+    // check if record exists (paging doesn't trigger 'done'
+    // if we use a promise)
+    if(lastBatch && lastBatch[0].id === records[0].id) {
       isDone = true
-      console.log('done!', results)
+    }
 
-      callback({
-        results,
-        isDone,
+    if(!isDone) {
+      lastBatch = records
+      records.forEach(function(record) {
+        // console.log('paged record:', record)
+        results = [... results, Cytosis.cleanRecord(record)]
+        // results = Cytosis.cleanRecord(record)
       })
+    }
 
+    if(fetchResolve)
+      fetchResolve(results)
+
+    callback({
+      results,
+      isDone,
+      getNextPage: async () => { 
+        if(!isDone) {
+          let results = await new Promise((_resolve, _reject) => {
+            fetchResolve = _resolve
+            fetchNextPage()
+          })
+          // getNextPage(fetchNextPage) 
+        }
+
+        return {
+          results,
+          isDone
+        }
+      },
     })
+
+    // auto fetches everything
+    // fetchNextPage()
+
+    // can't use a promise
+    // resolve({
+    // results,
+    // isDone,
+    // getNextPage: async () => { 
+    //   if(!isDone) {
+    //     let results = await new Promise((_resolve, _reject) => {
+    //       fetchResolve = _resolve
+    //       fetchNextPage()
+    //     })
+    //     // getNextPage(fetchNextPage) 
+    //   }
+
+    //   return {
+    //     results,
+    //     isDone
+    //   }
+    // },
+    // })
+
+  }, function done(err) {
+
+    if (err) { 
+      console.error('[Cytosis/getPageTable] Airtable Fetch Error @routeDetails:', routeDetails)
+      console.error('[Cytosis/getPageTable] Airtable Fetch Error [2]', 'Errored on table:', tableName, 'tableNames:', tableNames)
+      console.error('[Cytosis/getPageTable] Airtable Fetch Error >> error message:', err)
+      
+      // experiment with erroring silently
+      // reject(err)
+      reject(new Error("[Cytosis/getPageTable] No response from Airtable"))
+      // return
+    }
+
+    isDone = true
+    console.log('done!', results)
+
+    callback({
+      results,
+      isDone,
+    })
+
+  })
 
   // })
 }
@@ -519,26 +526,43 @@ static initCytosis (cytosis) {
 
 
     // if config exists, we skip retrieving _cytosis and go right to setup this saves some fetches
-    if(_this.config) {
+    if(_this.configObject) {
       // console.log('config found! skipping _cytosis', _this.config)
       // loadConfig sets the bases
-      initFromConfig(_this.config)
+      initFromConfig(_this.configObject)
       resolve(true)
+      return
     }
 
     // if we provided tables, but don't have config, 
     // we still skip config — we just default to whatever options were passed in
-    if(_this.bases && _this.bases.length > 0)
+    if(_this.bases && _this.bases.length > 0) {
       resolve(true)
+      return
+    }
 
 
     // if no config or tables setup, we grab config table
-    if(!_this.config) {
-
-      console.log('[Cytosis/init] Loading config from table:', _this.configTableName)
+    if(!_this.configObject) {
 
       // if no table names are provided, it looked for a special '_cytosis' tab
       // this is required to initialize the Cytosis object
+
+      // try the cache first
+      if(_this.useConfigCache) {
+        let _config = Cytosis.loadConfigCache(_this)
+        if (_config) {
+          console.log('[Cytosis/init] Config loaded from cache:', _config)
+          _this.configObject = _config
+          Cytosis.initFromConfig(_this, _config)
+          resolve(true)
+          return
+        }
+      }
+
+
+      console.log('[Cytosis/init] Loading config from table:', _this.configTableName, )
+
 
       Cytosis.getTables({
         cytosis: _this, 
@@ -554,7 +578,12 @@ static initCytosis (cytosis) {
         }
 
         if(_config) {
-          Cytosis.initFromConfig(cytosis, _config)
+          Cytosis.initFromConfig(_this, _config)
+
+          // sav config into cache if it's enabled
+          if(_this.useConfigCache) {
+            Cytosis.saveConfigCache(_this)
+          }
         }
 
         // console.log('Cytosis tables: ', _this.airBase, _this.tableNames)
@@ -571,7 +600,7 @@ static initCytosis (cytosis) {
 
 
 // used to be part of initCytosis — separated so configs can be passed in separately
-// this loads the config table into cytosis.config as an object
+// this loads the config table into cytosis.configObject as an object
 // also fills out cytosis.options and cytosis.bases
 // output: it changes cytosis directly; doesn't return anything
 static initFromConfig (cytosis, _config) {
@@ -690,12 +719,66 @@ static loadCytosisData (cytosis, append=false) {
 
 
 
+// store config into a cache strategy
+static saveConfigCache (cytosis) {
+  if(cytosis && cytosis.configObject && localStorage) {
+    const configCacheId = cytosis.configCacheId || `config-${cytosis.baseId}`
+
+    const now = new Date()
+    const cacheItem = {
+      value: cytosis.configObject,
+      expiry: now.getTime() + cytosis.cacheDuration
+    }
+
+    console.log('[Cytosis/saveConfigCache] Caching config:', configCacheId, cytosis.configObject)
+    localStorage.setItem(configCacheId, JSON.stringify(cacheItem));
+    // const cacheId = cytosis
+    return true
+  }
+
+  console.warn('[Cytosis/saveConfigCache] Config not cached; please provide a Cytosis object, and ensure it has a configObject set')
+  return false
+}
+
+// load config from a cache strategy
+static loadConfigCache (cytosis, configCacheId = undefined) {
+
+  if(cytosis)
+    configCacheId = cytosis.configCacheId || `config-${cytosis.baseId}`
+  
+  // this will fail if running on server
+  if(localStorage && configCacheId) {
+    const cacheItem = localStorage.getItem(configCacheId)
+
+    if (!cacheItem) {
+      return undefined
+    }
+
+    const {value, expiry} = JSON.parse(cacheItem)
+    const now = new Date()
+
+    // compare the expiry time of the item with the current time
+    if (now.getTime() > expiry) {
+      localStorage.removeItem(configCacheId)
+      return undefined
+    }
+    return value
+  }
+  console.warn('[Cytosis/loadConfigCache] Need to provide Cytosis object to clear cache')
+  return undefined
+}
 
 
 
+static resetConfigCache (cytosis) {
+  if(cytosis && localStorage) {
+    const configCacheId = cytosis.configCacheId || `config-${cytosis.baseId}`
+    localStorage.removeItem(configCacheId)
+  }
 
-
-
+  console.warn('[Cytosis/resetConfigCache] Need to provide Cytosis object to clear cache')
+  return false
+}
 
 
 

@@ -24,8 +24,11 @@ Quick Notes
 
 
 
+- 4/19/2020
+	- added save/load config caching into `initCytosis`
 
-
+- 4/18/2020
+	- added config localStore caching system
 
 - 4/16/2020
 	- `loadConfig` changed to `loadFromConfig` 
