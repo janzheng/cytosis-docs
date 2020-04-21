@@ -1,6 +1,6 @@
 <svelte:options accessors/>
 
-<main class="Demos">
+<main class="Demos _card __outline _padding-2">
 
   <h5 class="_font-bold">Basic Cytosis Examples</h5>
   <ul class="demo-list _margin-bottom-2">
@@ -51,7 +51,7 @@
     'demoFour': {name: "Demo Four", component: DemoFour, title: "4. Config & data reload/refresh", description: "This is how to use custom configs and tables without needing a '_cytosis' table"},
     'demoFive': {name: "Demo Five", component: DemoFive, title: "5. Bypassing config and directly setting your bases ", description: "This demo shows how to completely bypass config, to speed up loading"},
     'demoSix': {name: "Demo Six", component: DemoSix, title: "6. Caching strategies", description: "This demo shows how localStorage, browser-based cache helpers work."},
-    'demoSeven': {name: "Demo Seven", component: DemoSeven, title: "7. Views, filtering, sorting", description: "This demo shows how to take advantage of the Airtable API and Cytosis' filtering and sorting mechanisms."},
+    'demoSeven': {name: "Demo Seven", component: DemoSeven, title: "7. Views, filtering, sorting, and fields", description: "This demo shows how to take advantage of the Airtable API and Cytosis' views, filtering, sorting, and fields mechanisms."},
     'demoEight': {name: "Demo Eight", component: DemoEight, title: "8. Search", description: "This demo shows how to use cytosis to search and retrieve from Airtable."},
 
     'sandbox': {name: "Sandbox", component: DemoSandbox, title: "Sandbox", description: "This is a sandbox. Have fun!"},

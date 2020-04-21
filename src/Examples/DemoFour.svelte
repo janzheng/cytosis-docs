@@ -41,7 +41,7 @@
 					}}>Reload Data</button>
 			</div>
 
-	  	<div class="_card _padding __flat">{@html marked(cytosisObject.results['Site Content'][0].fields['Markdown'])}</div>
+	  	<div class="_card _padding __flat">{@html marked(cytosisObject.results['Site Content'][0].fields['Content'])}</div>
 
 			<div class="_margin-bottom">
 				<textarea class="configTextarea" name="config" rows="30" value={configJson} 

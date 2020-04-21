@@ -37,7 +37,7 @@
 			... loading Cytosis object ...
 		{/if}
 		{#if cytosisObject}
-	  	<div class="_card _padding --flat">{@html marked(cytosisObject.results['Site Content'][0].fields['Markdown'])}</div>
+	  	<div class="_card _padding --flat">{@html marked(cytosisObject.results['Site Content'][0].fields['Content'])}</div>
 		{/if}
 	</CytosisWip>
   

@@ -41,7 +41,7 @@
   // onMount(async () => {
   let loadCytosis = async function() {
 
-  	console.log('CytosisWIP loading...')
+  	console.log('CytosisWIP loading...', options)
   	// let hey = await getRecord({})
   	// console.log('???', getRecord)
 

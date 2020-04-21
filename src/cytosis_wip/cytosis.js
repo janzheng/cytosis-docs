@@ -290,10 +290,11 @@ class Cytosis {
     const getTablePromise = function({tableNames, options}) {
       try {
 
-        const filterObj = Cytosis.getFilterOptions(options)
 
         for (let tableName of tableNames) {
         // for (let tableName of !cytosis.tablesLoaded.includes(tableNames)) {
+
+          let filterObj = Cytosis.getFilterOptions(options, tableName)
 
           let list = []
 
@@ -621,6 +622,8 @@ static initFromConfig (cytosis, _config) {
       // these can drastically cut back the amount of retrieved data
       // note that options can be sent thru the _config table or code; the table takes
       // precedence for flexibility
+
+
       let options = {
         fields: config.fields['fields'] || cytosis.tableOptions['fields'], // fields to retrieve in the results
         filter: config.fields['filterByFormula'] || cytosis.tableOptions['filterByFormula'],
@@ -632,12 +635,12 @@ static initFromConfig (cytosis, _config) {
       }
 
       if(cytosis.tableOptions['sort']) {
-        options['sort'] = JSON.parse(config.fields['sort'])['sort'] // needs to be of format : "{sort: [blahblah]}"
+        options['sort'] = cytosis.tableOptions['sort'] // needs to be of format : "{sort: [blahblah]}"
+    
       }
       if(config.fields['sort']) {
-        options['sort'] = JSON.parse(config.fields['sort'])['sort'] // needs to be of format : "{sort: [blahblah]}"
+        options['sort'] = JSON.parse(config.fields['sort']) // needs to be of format : "{sort: [blahblah]}"
       }
-      
 
       // tables is an array of strings that say which tables (tabs) in Airtable to pull from
       // cytosis.bases = config.fields['Tables']
@@ -823,7 +826,7 @@ static resetConfigCache (cytosis) {
   // given options, this builds the filter object
   // required by airtableFetch and anything else that pulls data
   // from Airtable
-  static getFilterOptions(options) {
+  static getFilterOptions(options, tableName) {
 
     let {fields, sort, maxRecords, pageSize} = options
     let view = options.view || ''
@@ -1089,18 +1092,18 @@ static resetConfigCache (cytosis) {
 
   // findField
   // combines findOne with a way to get the field, with proper fallback
-  // a common use cases is: this.$cytosis.findOne('home-featured', this.$store.state['Content'] ).fields['Markdown'],
+  // a common use cases is: this.$cytosis.findOne('home-featured', this.$store.state['Content'] ).fields['Content'],
   // but this crashes if the content can't be found, which is a fairly easy occurence
   // 
   // instead, this fn allows us to do:
-  // this.$cytosis.findField('home-featured', this.$store.state['Content'], 'Markdown', ['Name'] )
+  // this.$cytosis.findField('home-featured', this.$store.state['Content'], 'Content', ['Name'] )
   // 
   // - this gets the content from Markdown
   // - or returns undefined if it doesn't exist (rather than crashing)
   // 
   // input: findStr — the column item you're looking for
   // table: the airtable of contents
-  // contentField: the content field you're looking for (e.g. 'Markdown')
+  // contentField: the content field you're looking for (e.g. 'Content')
   // fields: the columns you're trying to find a match 
   static findField (findStr, table, contentField, fields=['Name']) {
     let element = Cytosis.findOne(findStr, table, fields)

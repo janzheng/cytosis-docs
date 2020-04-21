@@ -27,7 +27,7 @@
 
 	let explainer = ''
   $: if($content) {
-  	explainer = _cytosis.findField('explainer', $content, 'Markdown' )
+  	explainer = _cytosis.findField('explainer', $content, 'Content' )
   }
 
 </script>
