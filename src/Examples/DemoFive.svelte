@@ -28,9 +28,18 @@
 
 	{#if loadCytosis}
 		<CytosisWip
+	    options={{
+	      apiKey: 'keygfuzbhXK1VShlR',
+	      baseId: 'appc0M3MdTYATe7RO',
+	      bases: 	bases,
+	      routeDetails: 'Demo Five',
+	    }}
+
 		  apiKey={'keygfuzbhXK1VShlR'} 
 		  baseId={'appc0M3MdTYATe7RO'}
 		  bases={bases}
+	  	routeDetails={'Cytosis Five'}
+	  	
 		  bind:isLoading={cytosisLoading}
 		  bind:cytosis={cytosisObject}
 		>
@@ -94,10 +103,10 @@ This demo shows how to pull data from Cytosis without using a config table like 
   @import '../styles/core';
 
 
-  .configTextarea {
-  	padding: $unit;
-  	width: 100% !important;
-  }
+  // .configTextarea {
+  // 	padding: $unit;
+  // 	width: 100% !important;
+  // }
 
 </style>
 

@@ -1,5 +1,4 @@
 
-
 <main class="Appy _section-page _margin-center"> 
   <Nav {active} />
   <svelte:component this={Route} {params} />

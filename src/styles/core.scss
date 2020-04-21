@@ -8,18 +8,29 @@
 @import '../../node_modules/coeur/styles/_heart.scss';
 
 
-@import '../../node_modules/coeur/styles/_head.scss';
+@import '../../node_modules/coeur/styles/head-mixins'; // depends on prefixer, in _heart
+@import '../../node_modules/coeur/styles/head-reset';      
+@import '../../node_modules/coeur/styles/head-screen';
+// @import 'head-colors';
+@import '../../node_modules/coeur/styles/head-helpers';
+@import '../../node_modules/coeur/styles/head-animation';
+@import '../../node_modules/coeur/styles/head-typography';
+@import '../../node_modules/coeur/styles/head-flexy'; 
+@import '../../node_modules/coeur/styles/head-griddick'; 
+// @import '../../node_modules/coeur/styles/head-masonry'; 
+@import '../../node_modules/coeur/styles/head-borders'; 
+
 
 // @import '../../node_modules/coeur/styles/_neck.scss';
 @import '../../node_modules/coeur/styles/_neck-buttons.scss';
 @import '../../node_modules/coeur/styles/_neck-layout.scss';
 @import '../../node_modules/coeur/styles/_neck-design.scss';
 @import '../../node_modules/coeur/styles/_neck-links.scss';
-@import '../../node_modules/coeur/styles/_neck-code.scss';
+// @import '../../node_modules/coeur/styles/_neck-code.scss';
 
 // @import '../../node_modules/coeur/styles/_body.scss';
 @import '../../node_modules/coeur/styles/_body-card.scss';
-// @import '../../node_modules/coeur/styles/_body-forms';  
+@import '../../node_modules/coeur/styles/_body-forms';  
 // @import '../../node_modules/coeur/styles/_body-tag';  
 // @import '../../node_modules/coeur/styles/_body-table';  
 // @import '../../node_modules/coeur/styles/_body-buttonGroups';  

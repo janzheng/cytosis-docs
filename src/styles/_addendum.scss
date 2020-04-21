@@ -1,5 +1,102 @@
 
 
+
+
+
+
+body {
+  background-color: usetheme(body-bg); //$color-gray;
+  color: usetheme(copy);
+  font-family: usetheme(font-sans);
+  font-size: $size;
+  line-height: $sizeline;
+}
+
+// h1, h2, h3, h4, h5, h6 {
+//   color: usetheme(header-color);
+
+//   &.__roomy {
+//     padding-bottom: $size-2x;
+//   }
+//   &.__title, &.__ceiling {
+//     padding-top: 0 !important;
+//   }
+//   &.__floor {
+//     padding-bottom: 0 !important;
+//   }
+//   &.__normal {
+//     font-weight: normal;
+//   }
+//   &.__inline {
+//     padding-bottom: $size-half !important;
+//   }
+// } 
+
+// textarea {
+//   line-height: $font-lineheight;
+// }
+
+// // semantically used to introduce a page, not meant to surround content
+// h1 {
+//   padding-top: $size-2x;
+//   padding-bottom: $size-2x;
+// }
+
+// h2 {
+// // used to separate sections, and is largest element
+// // lots of room up to, some at bottom to separate content
+//   padding-top: $size-2x;
+
+//   &.__large {
+//     font-size: $size-4;
+//     padding-bottom: $size-4 * 3/2;
+//   }
+// }
+
+// h3 {
+// // used to introduce subtopics, hugs content but still needs to breathe
+//   padding-top: $size-2;
+//   // line-height: $size-2 * 1.33;
+
+//   &.__large {
+//     font-size: $font-h2;
+//     line-height: $lineheight-h2;
+//     font-weight: normal;
+//   }
+// }
+
+// h4 {
+// // used to introduce subtopics, hugs content but still needs to breathe
+//   padding-top: $size;
+//   // line-height: $size-3;
+//   font-size: $font-h4;
+//   line-height: $font-h4 * 3/2;
+
+//   &.__large {
+//     font-size: $font-h3;
+//     line-height: $lineheight-h3;
+//   }
+// }
+
+// h5 {
+//   font-size: $size + 2px;
+// }
+
+// h6.__tight, %tight {
+//   font-size: usetheme(font--2);
+//   line-height: usetheme(font--2-lh);
+//   letter-spacing: 1px;
+// }
+
+
+
+
+
+
+
+
+
+
 button {
 	&.__short {
 		line-height: 0;

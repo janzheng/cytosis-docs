@@ -6,10 +6,17 @@
 	<div>{@html marked(more) }</div>
 
 	<CytosisWip
+    options={{
+      apiKey: 'keygfuzbhXK1VShlR',
+      baseId: 'appc0M3MdTYATe7RO',
+      configName: 'content-1',
+      routeDetails: 'Demo Four',
+    }}
+
 	  apiKey={'keygfuzbhXK1VShlR'} 
 	  baseId={'appc0M3MdTYATe7RO'} 
 	  configName={'content-1'}
-	  routeDetails={'Cytosis docs 4'}
+	  routeDetails={'Cytosis Four'}
 	  bind:isLoading={cytosisLoading}
 	  bind:cytosis={cytosisObject}
 	>
@@ -86,10 +93,10 @@ This demo by default gets a config from 'content-1' from the '_cytosis' table â€
   @import '../styles/core';
 
 
-  .configTextarea {
-  	padding: $unit;
-  	width: 100% !important;
-  }
+  // .configTextarea {
+  // 	padding: $unit;
+  // 	width: 100% !important;
+  // }
 
 </style>
 

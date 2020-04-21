@@ -619,16 +619,25 @@ static initFromConfig (cytosis, _config) {
 
       // some queries can contain options like fields, sort, maxRecords etc.
       // these can drastically cut back the amount of retrieved data
-      const options = {
-        fields: config.fields['fields'], // fields to retrieve in the results
-        filter: config.fields['filterByFormula'],
-        maxRecords: config.fields['maxRecords'],
-        pageSize: config.fields['pageSize'],
-        sort: config.fields['sort'] ? JSON.parse(config.fields['sort'])['sort'] : undefined, // needs to be of format : "{sort: [blahblah]}"
-        view: config.fields['view'],
-        matchKeywordWithField: config.fields['matchKeywordWithField'],
-        matchStyle: config.fields['matchStyle'], // how are keywords matched?
+      // note that options can be sent thru the _config table or code; the table takes
+      // precedence for flexibility
+      let options = {
+        fields: config.fields['fields'] || cytosis.tableOptions['fields'], // fields to retrieve in the results
+        filter: config.fields['filterByFormula'] || cytosis.tableOptions['filterByFormula'],
+        maxRecords: config.fields['maxRecords'] || cytosis.tableOptions['maxRecords'],
+        pageSize: config.fields['pageSize'] || cytosis.tableOptions['pageSize'],
+        view: config.fields['view'] || cytosis.tableOptions['view'],
+        matchKeywordWithField: config.fields['matchKeywordWithField'] || cytosis.tableOptions['matchKeywordWithField'],
+        matchStyle: config.fields['matchStyle'] || cytosis.tableOptions['matchStyle'], // how are keywords matched?
       }
+
+      if(cytosis.tableOptions['sort']) {
+        options['sort'] = JSON.parse(config.fields['sort'])['sort'] // needs to be of format : "{sort: [blahblah]}"
+      }
+      if(config.fields['sort']) {
+        options['sort'] = JSON.parse(config.fields['sort'])['sort'] // needs to be of format : "{sort: [blahblah]}"
+      }
+      
 
       // tables is an array of strings that say which tables (tabs) in Airtable to pull from
       // cytosis.bases = config.fields['Tables']
@@ -741,31 +750,34 @@ static saveConfigCache (cytosis) {
 }
 
 // load config from a cache strategy
-static loadConfigCache (cytosis, configCacheId = undefined) {
+static loadConfigCache (cytosis, configCacheId = null) {
 
   if(cytosis)
     configCacheId = cytosis.configCacheId || `config-${cytosis.baseId}`
   
+  // console.log('loading config cache..', cytosis, localStorage)
+
   // this will fail if running on server
   if(localStorage && configCacheId) {
     const cacheItem = localStorage.getItem(configCacheId)
 
     if (!cacheItem) {
-      return undefined
+      return null
     }
 
     const {value, expiry} = JSON.parse(cacheItem)
     const now = new Date()
 
     // compare the expiry time of the item with the current time
+    // console.log('[Cytosis/loadConfigCache] Cache expires ', expiry.toLocaleString())
     if (now.getTime() > expiry) {
       localStorage.removeItem(configCacheId)
-      return undefined
+      return null
     }
     return value
   }
   console.warn('[Cytosis/loadConfigCache] Need to provide Cytosis object to clear cache')
-  return undefined
+  return null
 }
 
 

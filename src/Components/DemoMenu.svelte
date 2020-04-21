@@ -2,12 +2,22 @@
 
 <main class="Demos">
 
-  <h5 class="_font-bold">Cytosis Demo Menu</h5>
+  <h5 class="_font-bold">Basic Cytosis Examples</h5>
   <ul class="demo-list _margin-bottom-2">
-    {#each Object.keys(demos) as demo}
-      <li><a class={ isActive(demo) } href="/demos/{demo}">{ demos[demo].title }</a> — { demos[demo].description }</li>
+    {#each Object.keys(basicDemos) as demo}
+      <li><a class={ isActive(demo) } href="/demos/{demo}">{ basicDemos[demo].title }</a> — { basicDemos[demo].description }</li>
     {/each}
   </ul>
+
+
+  <h5 class="_font-bold">Write-capable Examples</h5>
+  <ul class="demo-list _margin-bottom-2">
+    {#each Object.keys(writeDemos) as demo}
+      <li><a class={ isActive(demo) } href="/demos/{demo}">{ writeDemos[demo].title }</a> — { writeDemos[demo].description }</li>
+    {/each}
+  </ul>
+
+
 
 </main>
 
@@ -23,6 +33,10 @@
   import DemoFour from '../examples/DemoFour.svelte'
   import DemoFive from '../examples/DemoFive.svelte'
   import DemoSix from '../examples/DemoSix.svelte'
+  import DemoSeven from '../examples/DemoSeven.svelte'
+  import DemoEight from '../examples/DemoEight.svelte'
+  import DemoNine from '../examples/DemoNine.svelte'
+  import DemoTen from '../examples/DemoTen.svelte'
 
   import DemoSandbox from '../examples/DemoSandbox.svelte'
 
@@ -30,18 +44,27 @@
 
   $: isActive = str => demoName === str ? 'selected' : '';
 
-  export let demos = {
+  export let basicDemos = {
     'demoOne': {name: "Demo One", component: DemoOne, title: "1. Basics", description: "This demo retrieves a table from the given Base, by reading a record in '_cytosis'"},
     'demoTwo': {name: "Demo Two", component: DemoTwo, title: "2. Get a table of items", description: "This demo retrieves a ton of items from the Items Table in a non-paginated manner"},
     'demoThree': {name: "Demo Three", component: DemoThree, title: "3. Get a table of items in a paginated way", description: "This demo shows how to use 'getPageTable'"},
     'demoFour': {name: "Demo Four", component: DemoFour, title: "4. Config & data reload/refresh", description: "This is how to use custom configs and tables without needing a '_cytosis' table"},
     'demoFive': {name: "Demo Five", component: DemoFive, title: "5. Bypassing config and directly setting your bases ", description: "This demo shows how to completely bypass config, to speed up loading"},
     'demoSix': {name: "Demo Six", component: DemoSix, title: "6. Caching strategies", description: "This demo shows how localStorage, browser-based cache helpers work."},
-
+    'demoSeven': {name: "Demo Seven", component: DemoSeven, title: "7. Views, filtering, sorting", description: "This demo shows how to take advantage of the Airtable API and Cytosis' filtering and sorting mechanisms."},
+    'demoEight': {name: "Demo Eight", component: DemoEight, title: "8. Search", description: "This demo shows how to use cytosis to search and retrieve from Airtable."},
 
     'sandbox': {name: "Sandbox", component: DemoSandbox, title: "Sandbox", description: "This is a sandbox. Have fun!"},
   }
 
+
+  export let writeDemos = {
+    'DemoNine': {name: "Demo Nine", component: DemoNine, title: "9. Saving to Cytosis", description: "This demo shows how to use a form to save directly to Cytosis."},
+  }
+
+
+  // combines the different demos for the Demos component
+  export let demos = {...basicDemos, ...writeDemos}
 </script>
 
 

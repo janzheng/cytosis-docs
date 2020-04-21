@@ -6,10 +6,10 @@ import livereload from 'rollup-plugin-livereload';
 import { terser } from 'rollup-plugin-terser';
 import babel from 'rollup-plugin-babel';
 import json from 'rollup-plugin-json';
-import {config} from 'dotenv';
-import replace from '@rollup/plugin-replace';
-// import autoPreprocess from 'svelte-preprocess';
-import { scss } from 'svelte-preprocess';
+// import {config} from 'dotenv';
+// import replace from '@rollup/plugin-replace';
+import autoPreprocess from 'svelte-preprocess';
+// import { scss } from 'svelte-preprocess';
 import sass from 'rollup-plugin-sass';
 
 const production = !process.env.ROLLUP_WATCH;
@@ -53,13 +53,13 @@ export default {
 			dev: !production,
 			// we'll extract any component CSS out into
 			// a separate file — better for performance
-			// preprocess: autoPreprocess(),
-			preprocess: [
-				scss(),
-			],
-			// css: css => {
-			// 	css.write('public/bundle.css');
-			// }
+			preprocess: autoPreprocess(),
+			// preprocess: [
+			// 	scss(),
+			// ],
+			css: css => {
+				css.write('public/bundle.css');
+			}
 		}),
 
 		sass({

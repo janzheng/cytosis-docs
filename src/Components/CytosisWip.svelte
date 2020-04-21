@@ -10,9 +10,7 @@
 
  -->
 
-
-
-<div class="Cytosis" id="cytosis-{configName}">
+<div class="Cytosis" id="cytosis-{options.configName}">
 	<slot></slot>
 </div>
 
@@ -29,7 +27,8 @@
 	export let isError = false
 
 	// required values
-	export let apiKey, apiEditorKey, baseId, configName, routeDetails, bases
+	export let options = {}
+	// export let apiKey, apiEditorKey, baseId, configName, routeDetails, bases, useConfigCache, tableOptions
 	export let tableName = undefined // convenience — gets the table you want 
 
 	// bind to these value
@@ -38,24 +37,29 @@
 
 
 
-  onMount(async () => {
+	// good for SSR, but bad for re-running code as you can't re-mount something
+  // onMount(async () => {
+  let loadCytosis = async function() {
 
-  	// console.log('???!!!')
+  	console.log('CytosisWIP loading...')
   	// let hey = await getRecord({})
   	// console.log('???', getRecord)
 
-		
 	  try {
 	  	isLoading = true
 
-	    const _cytosis = await new Cytosis({
-	      apiKey, 
-	      apiEditorKey,
-	      bases,
-	      baseId,
-	      configName,
-	      routeDetails,
-	    });
+	    const _cytosis = await new Cytosis(options);
+
+	    // const _cytosis = await new Cytosis({
+	    //   apiKey, 
+	    //   apiEditorKey,
+	    //   bases,
+	    //   baseId,
+	    //   configName,
+	    //   routeDetails,
+	    //   useConfigCache, 
+	    //   tableOptions,
+	    // });
 
 	    // console.log('cydata/cytosis', _cytosis)
 	    cytosis = await _cytosis
@@ -71,7 +75,14 @@
 	    console.error('[Cytosis Data Error]:', err)
 	    return Promise.reject()
 	  }
-  })
+  	// })
+	}
+
+	$: if(options) { // update when options change
+		loadCytosis()
+	}
+
+	loadCytosis()
 
 </script>
 

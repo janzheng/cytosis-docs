@@ -18,10 +18,18 @@
 	</div>
 
 	<CytosisWip
+    options={{
+      apiKey: 'keygfuzbhXK1VShlR',
+      baseId: 'appc0M3MdTYATe7RO',
+      configName: 'content-1',
+      routeDetails: 'Demo One',
+    }}
+
 	  apiKey={'keygfuzbhXK1VShlR'} 
 	  baseId={'appc0M3MdTYATe7RO'} 
 	  configName={'content-1'}
-	  routeDetails={'Cytosis docs basic demo one'}
+	  routeDetails={'Cytosis One'}
+	  
 	  bind:isLoading={cytosisLoading}
 	  bind:cytosis={cytosisObject}
 	>

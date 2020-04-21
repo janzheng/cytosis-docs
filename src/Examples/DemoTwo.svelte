@@ -5,10 +5,18 @@
 		<div>{@html marked(description) }</div>
 
 		<CytosisWip
+	    options={{
+	      apiKey: 'keygfuzbhXK1VShlR',
+	      baseId: 'appc0M3MdTYATe7RO',
+	      configName: 'items-all',
+	      routeDetails: 'Demo Two',
+	    }}
+
 		  apiKey={'keygfuzbhXK1VShlR'} 
 		  baseId={'appc0M3MdTYATe7RO'} 
 		  configName={'items-all'}
-		  routeDetails={'Testing large collection item retrieval'}
+		  routeDetails={'Demo Two'}
+		  
 		  bind:isLoading={cytosisLoading}
 		  bind:cytosis={cytosisObject}
 		>

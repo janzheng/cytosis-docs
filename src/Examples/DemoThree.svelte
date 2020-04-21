@@ -5,10 +5,18 @@
 		<div>{@html marked(description) }</div>
 
 		<CytosisPaginate
+	    options={{
+	      apiKey: 'keygfuzbhXK1VShlR',
+	      baseId: 'appc0M3MdTYATe7RO',
+	      configName: 'items-paged',
+	      routeDetails: 'Demo Three',
+	    }}
+
 		  apiKey={'keygfuzbhXK1VShlR'} 
 		  baseId={'appc0M3MdTYATe7RO'} 
 		  configName={'items-paged'}
-		  routeDetails={'Testing paged items'}
+		  routeDetails={'Demo Three'}
+		  
 		  bind:isLoading={cytosisLoading}
 		  bind:cytosis={cytosisObject}
 		  bind:data={data}
