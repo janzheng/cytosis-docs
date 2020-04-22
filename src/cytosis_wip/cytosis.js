@@ -251,8 +251,6 @@ class Cytosis {
       return new Promise(function(resolve, reject) {
         let timedFetcher
 
-        console.log('airtableFetching:', tableName, filterObj, base._base)
-        
         base(tableName).select(
           filterObj
         ).eachPage(function page(records, fetchNextPage) {
@@ -612,38 +610,43 @@ static initFromConfig (cytosis, _config) {
   // need column 'Tables' with a Multiple Select of all the table names in the base
   // (this is required b/c Airtable API won't let you get all table names)
   // init tables from config if they don't exist
+
+  let getOptions = function(config) {
+    // some queries can contain options like fields, sort, maxRecords etc.
+    // these can drastically cut back the amount of retrieved data
+    // note that options can be sent thru the _config table or code; the table takes
+    // precedence for flexibility
+
+    let options = {
+      fields: config.fields['fields'] || cytosis.tableOptions['fields'], // fields to retrieve in the results
+      filter: config.fields['filterByFormula'] || cytosis.tableOptions['filterByFormula'],
+      maxRecords: config.fields['maxRecords'] || cytosis.tableOptions['maxRecords'],
+      pageSize: config.fields['pageSize'] || cytosis.tableOptions['pageSize'],
+      view: config.fields['view'] || cytosis.tableOptions['view'],
+
+      keyword: config.fields['keyword'] || cytosis.tableOptions['keyword'], // used for filter searching
+      matchCase: config.fields['matchCase'] || cytosis.tableOptions['matchCase'], // if true, only matches if case is the same; otherwise performs a LOWER()
+      matchKeywordWithField: config.fields['matchKeywordWithField'] || cytosis.tableOptions['matchKeywordWithField'],
+      matchStyle: config.fields['matchStyle'] || cytosis.tableOptions['matchStyle'], // how are keywords matched?
+    }
+
+    if(cytosis.tableOptions['sort']) {
+      options['sort'] = cytosis.tableOptions['sort'] // needs to be of format : "{sort: [blahblah]}"
+  
+    }
+    if(config.fields['sort']) {
+      options['sort'] = JSON.parse(config.fields['sort']) // needs to be of format : "{sort: [blahblah]}"
+    }
+
+    return options
+  }
+
   for(let config of _config[cytosis.configTableName]) {
 
 
     // Option 1: find all the options in the Tables list
     if ( config.fields['Name'] == cytosis.configName && config.fields['Tables']) {
-
-      // some queries can contain options like fields, sort, maxRecords etc.
-      // these can drastically cut back the amount of retrieved data
-      // note that options can be sent thru the _config table or code; the table takes
-      // precedence for flexibility
-
-
-      let options = {
-        fields: config.fields['fields'] || cytosis.tableOptions['fields'], // fields to retrieve in the results
-        filter: config.fields['filterByFormula'] || cytosis.tableOptions['filterByFormula'],
-        maxRecords: config.fields['maxRecords'] || cytosis.tableOptions['maxRecords'],
-        pageSize: config.fields['pageSize'] || cytosis.tableOptions['pageSize'],
-        view: config.fields['view'] || cytosis.tableOptions['view'],
-
-        keyword: config.fields['keyword'] || cytosis.tableOptions['keyword'], // used for filter searching
-        matchCase: config.fields['matchCase'] || cytosis.tableOptions['matchCase'], // if true, only matches if case is the same; otherwise performs a LOWER()
-        matchKeywordWithField: config.fields['matchKeywordWithField'] || cytosis.tableOptions['matchKeywordWithField'],
-        matchStyle: config.fields['matchStyle'] || cytosis.tableOptions['matchStyle'], // how are keywords matched?
-      }
-
-      if(cytosis.tableOptions['sort']) {
-        options['sort'] = cytosis.tableOptions['sort'] // needs to be of format : "{sort: [blahblah]}"
-    
-      }
-      if(config.fields['sort']) {
-        options['sort'] = JSON.parse(config.fields['sort']) // needs to be of format : "{sort: [blahblah]}"
-      }
+      let options = getOptions(config)
 
       // tables is an array of strings that say which tables (tabs) in Airtable to pull from
       // cytosis.bases = config.fields['Tables']
@@ -656,8 +659,8 @@ static initFromConfig (cytosis, _config) {
     } 
 
     // Option 2: find all the tableQueries in the linkedQueries (this lets you pull in mulitple queries) list
-    else if ( config.fields['Name'] == cytosis.configName && config.fields['LinkedconfigNames']) {
-      const linkedQueries = config.fields['LinkedconfigNames']
+    else if ( config.fields['Name'] == cytosis.configName && config.fields['linkedQueries']) {
+      const linkedQueries = config.fields['linkedQueries']
       // console.log('Linked Query Names: ', linkedQueries)
 
       // this is a special case where instead of an array of strings, it's an
@@ -667,16 +670,17 @@ static initFromConfig (cytosis, _config) {
       linkedQueries.map((linkedquery) => {
         _config._cytosis.map((query) => {
           if(linkedquery == query.fields['Name']) {
-            // console.log('match:', linkedquery, query)
-
-            const options = {
-              fields: query.fields['fields'], // fields to retrieve in the results
-              filter: query.fields['filterByFormula'],
-              maxRecords: query.fields['maxRecords'],
-              pageSize: query.fields['pageSize'],
-              sort: query.fields['sort'] ? JSON.parse(query.fields['sort'])['sort'] : undefined, // needs to be of format : "{sort: [blahblah]}"
-              view: query.fields['view'],
-            }
+            let options = getOptions(query)
+            console.log('linkedquery match:', linkedquery, query, options)
+    
+            // const options = {
+            //   fields: query.fields['fields'], // fields to retrieve in the results
+            //   filter: query.fields['filterByFormula'],
+            //   maxRecords: query.fields['maxRecords'],
+            //   pageSize: query.fields['pageSize'],
+            //   sort: query.fields['sort'] ? JSON.parse(query.fields['sort'])['sort'] : undefined, // needs to be of format : "{sort: [blahblah]}"
+            //   view: query.fields['view'],
+            // }
 
             bases.push({
               query: linkedquery,
@@ -835,7 +839,7 @@ static resetConfigCache (cytosis) {
     let view = options.view || ''
     let filter = options.filter || ''
 
-    console.log('get Filter options:', tableName, options)
+    // console.log('get Filter options:', tableName, options)
 
     // if matchKeywordWithField exists, and a keyword was passed into the cytosis options object,
     // we create a filterByFormula where the given keyword has to exist in the field

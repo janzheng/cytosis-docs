@@ -7,29 +7,30 @@
 	<p>{@html marked(more) }</p>
 
 
-	<CytosisWip
-	  apiKey={'keygfuzbhXK1VShlR'} 
-	  baseId={'appc0M3MdTYATe7RO'} 
-	  configName={'content-1'}
-	  routeDetails={'Cytosis Nine'}
-	  bind:isLoading={cytosisLoading}
-	  bind:cytosis={cytosisObject}
-	>
-		{#if cytosisLoading}
-			... loading Cytosis object ...
-		{/if}
-		{#if cytosisObject}
-	  	<div class="_card _padding --flat">{@html marked(cytosisObject.results['Site Content'][0].fields['Content'])}</div>
+  <CytosisWip
+    options={{
+      apiKey: 'keygfuzbhXK1VShlR',
+      baseId: 'appc0M3MdTYATe7RO',
+      configName: 'linked-query-example',
+      routeDetails: 'Demo Nine',
+    }}
 
-	  	<div class="_card _padding --flat">
-	  		{#if status}
-	  			<p>{status}</p>
-	  		{/if}
-	  		<p>Loaded config Object:</p>
-	  			{ loadedConfig }
-	  	</div>
-		{/if}
-	</CytosisWip>
+    bind:isLoading={cytosisLoading}
+    bind:cytosis={cytosisObject}
+  >
+    {#if cytosisLoading}
+      ... loading Cytosis object ...
+    {/if}
+    {#if cytosisObject}
+      {#each Object.keys(cytosisObject.results) as table (table)}
+        <h4>Table: { table }</h4>
+        {#each cytosisObject.results[table] as item (item.id)}
+          <p>{@html marked(item.fields['Content'])}</p>
+        {/each}
+      {/each}
+
+    {/if}
+  </CytosisWip>
   
 </div>
 
@@ -51,7 +52,7 @@
 
   export let title = `9. Linked Queries`
   export let description = `This demo shows how combine queries into a single query in config. This is really useful for splitting and creating complex, fine-grained queries.`
-  export let more = `* Be careful! If you expose an Editor user's API key to your table to the browser, anyone can add, edit, or delete the contents on your table. You need to either use a server (or serverless/microservice), or create a second table that protects the content from the main table`
+  export let more = `This example shows how to combine two different table queries in _cytosis, by specifying a linked query ("linked-query-example" in this case). This example draws data from the Items Table and the Sorted records of the Site Content table. Note that we can't control the order the tables come back in.`
 
   /*
     - matchKeywordWithField
@@ -65,27 +66,6 @@
   let status 
   let cytosisObject, loadedConfig
   let cytosisLoading = false
-
-  let storeCache = function() {
-  	if(cytosisObject) {
-  		Cytosis.saveConfigCache(cytosisObject)
-  		console.log('cache saved!!')
-  	}
-  }
-
-  let loadCache = function() {
-  	if(cytosisObject) {
-  		console.log('loading cache!!')
-  		loadedConfig = Cytosis.loadConfigCache(cytosisObject)
-  		console.log('loaded config: ', loadedConfig)
-  	}
-  }
-
-  $: if (cytosisObject) {
-  	console.log('cytosis loading, storing cache ... ')
-  	storeCache()
-  	loadCache()
-  }
 
 
 </script>

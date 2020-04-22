@@ -8,7 +8,7 @@
 
 
   <div class="Formlet Formlet-input _form-control" >
-    <label class="_form-label" >Search: ({searchTerm || 'type a term'})</label>
+    <label class="_form-label" >Search: ({searchTerm || 'type something'})</label>
     <input class="_form-input __width-full" type="text" bind:value={searchTerm}>
     <div class="_form-checkbox __inline _padding-top">
       <label>
