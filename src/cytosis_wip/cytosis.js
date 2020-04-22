@@ -1147,26 +1147,120 @@ static resetConfigCache (cytosis) {
   //    tableName: a string indicating what table to save to
   //    cytosis: cytosis object (w/ proper key/base)
   //    recordId: a string, if defined, would save the object into the existing record w/ recordId
+  // 
+  // If tableOptions.linkedObjects exists, save() will make sure those exist in linked tables, and fill in the details w/ a create()  
+  // 
+  // 
   // Output:
   //    an object: the saved record object as returned from Airtable
   static save ({payload, tableName, apiKey, baseId, cytosis, recordId, tableOptions}) {
     
     const base = Cytosis.getBase(apiKey || cytosis.apiKey, baseId || cytosis.baseId) // airtable base object
     const typecast = tableOptions && tableOptions.insertOptions && tableOptions.insertOptions.includes('typecast') ? true : false
+    let linkedObjects = {}
+
+    // create a linked object
+    // first let typecast create the new object
+    // then fill in the rest of the data in the newly created
+    // (or already existing) linked object
+    if(tableOptions.linkedObjects) {
+      tableOptions.linkedObjects.map((obj) => {
+        linkedObjects[obj.field] = {...obj, ...{payload: payload[obj.field]} }
+
+        // create an item that allows for typecast to create the object
+        // which only works by passing it a string of the key field, e.g. Name 
+        payload[obj.field] = payload[obj.field][obj.key]
+      })
+
+      // console.log('linked objects:', linkedObjects, Object.keys(linkedObjects))
+    }
+
+    // after typecast's created the new linked object
+    // look for it under Fields, grab the array of IDs, and update!
+    // this can get API-intensive as it requires a lookup first
+    const insertLinkedObjects = function(record) {
+      return new Promise((resolve, reject) => {
+        // console.log('inserting linked objects', record, linkedObjects)
+        
+        let pRecords = [] // promises of records pulled from the linked tables
+        let pUpdated = [] // promises of records after they're all saved
+
+        // for each linked object, find it in the record
+        Object.keys(linkedObjects).map((linkedObjectKey) => {
+          let linkedFieldIds = record.fields[linkedObjectKey]
+          // console.log('linked field IDs:', linkedFieldIds, linkedObjectKey, linkedObjects[linkedObjectKey])
+
+          // for each linked ID, get the record using find, so we can match against the key (e.g. Name)
+          linkedFieldIds.map(async (linkedId) => {
+            pRecords.push(new Promise((_resolve, _reject) => {
+              // console.log('grabbing linked Id:', linkedId)
+              base(linkedObjects[linkedObjectKey].table).find(linkedId, function(err, _record) {
+                if (err) { console.error(err); Promise.reject(err); return; }
+                // console.log('pushing linked record:', _record)
+                _resolve(_record)
+              })
+            }))
+          })
+        })
+
+        // for each pulled record, now update it w/ the object
+        Promise.all(pRecords).then((records) => {
+          // console.log('All pulled records.....', pRecords, records)
+          records.map((record) => {
+            // find a match to an object
+           Object.keys(linkedObjects).map((lkObjKey) => {
+              // console.log('iterating records:', record, lkObjKey, linkedObjects[lkObjKey], linkedObjects[lkObjKey].payload[linkedObjects[lkObjKey].key])
+              if(linkedObjects[lkObjKey].payload[linkedObjects[lkObjKey].key] == record.fields[linkedObjects[lkObjKey].key]) {
+                pUpdated.push(new Promise((_resolve, _reject) => {
+                  let _newRec = {
+                    ... { id: record.id },
+                    ... { fields: linkedObjects[lkObjKey].payload }
+                  }
+                  // console.log('found record match ', linkedObjects[lkObjKey], record, ' new record:', _newRec, ' table:', linkedObjects[lkObjKey].table)
+                  base(linkedObjects[lkObjKey].table).update([_newRec], {typecast: true}, function(err, _record) {
+                    if (err) { console.error(err); Promise.reject(err); return; }
+                    // console.log('new record updated...', _record)
+                    _resolve(_record)
+                  })
+                }))
+              }
+            })
+            // base(tableName).create
+          })
+          resolve(true)
+
+          Promise.all(pUpdated).then((updated) => {
+            console.log('All successfully added!')
+            resolve(updated)
+          })
+        })
+
+        // resolve(true)
+      })
+
+    }
 
     try {
       return new Promise(function(resolve, reject) {
         if (!recordId) {
-          base(tableName).create(payload, {typecast}, function(err, record) {
+          base(tableName).create(payload, {typecast}, async function(err, record) {
             if (err) { console.error('Airtable async save/create error', err); reject(err); return }
             console.log('New record: ' , record.getId(), record.fields['Name'])
+
+            if(Object.keys(linkedObjects).length > 0)
+              await insertLinkedObjects(record)
+
             resolve(record)
           })
         } else {
           // old API doesn't support typecast
-          base(tableName).update(recordId, payload, {typecast}, function(err, record) {
+          base(tableName).update(recordId, payload, {typecast}, async function(err, record) {
             if (err) { console.error('Airtable async save error', err); reject(err); return }
             console.log('Updated record: ' , record.getId(), record.fields['Name'])
+
+            if(Object.keys(linkedObjects).length > 0)
+              await insertLinkedObjects(record)
+            
             resolve(record)
           })
         }
@@ -1176,6 +1270,10 @@ static resetConfigCache (cytosis) {
       console.error('Save Object to Airtable error (do you have permission?)', e); return 
     }
   }
+
+
+
+
 
   // uses the new Airtable create/update API
   // passes in an array of objects (id is embedded within the objects)
@@ -1244,6 +1342,8 @@ static resetConfigCache (cytosis) {
   }
 
 
+
+
   // Saves a list of strings to a target table
   // If a string is not matched, it's created as a unique record in the target table
   // If a string is found as a match in the target table (usually the key field 'Name'), a new record doesn't get created
@@ -1254,6 +1354,9 @@ static resetConfigCache (cytosis) {
   // - Make sure to use this on fields like "Tags" that have linked data
   // - This will return an array of ids that Airtable will save as Links to the other table
   // - *** Make sure to update your local tables getTables
+  // 
+  // NOTE: if typecast is true, Airtable will create a new object with the linked table with the new name, but will not let you add
+  //       data in the other fields
   // 
   // resolves linked tables like tags and collections (b/c Airtable doesn’t return table details this has to be semi-manual)
   // takes a list of string or data objects, adds them to the base, and return a list of ids where they were just added
@@ -1432,7 +1535,7 @@ static resetConfigCache (cytosis) {
   //    getObj: if true, will return entire object, otherwise just gets the name of the row
   // Output:
   //    either an array of names or array of Airtable records
-  static getLinkedRecords (recordIdArray, sourceArray, getObj=false) {
+  static getLinkedRecords (recordIdArray, sourceArray, getObj=true, fieldName='Name') {
     if(!recordIdArray || !sourceArray)
       return []
 
@@ -1443,7 +1546,7 @@ static resetConfigCache (cytosis) {
           if(getObj) {
             records.push(linkedRecord)
           } else {
-            records.push(linkedRecord.fields['Name'])
+            records.push(linkedRecord.fields[fieldName])
           }
         }
       }

@@ -24,7 +24,7 @@
       {#each Object.keys(cytosisObject.results) as table (table)}
         <h4>Table: { table }</h4>
         {#each cytosisObject.results[table] as item (item.id)}
-          <p>{@html item.fields['Content'] ? marked(item.fields['Content']) : item.fields['Message']}</p>
+          <p>{@html item.fields['Content'] ? marked(item.fields['Content']) : item.fields['Name']}</p>
         {/each}
       {/each}
     {/if}
@@ -77,7 +77,7 @@
     {
       apiKey: 'keygfuzbhXK1VShlR',
       baseId: 'app9xsC0ykwoAYHoC',
-      tables: ["Messages"],
+      tables: ["Pets"],
       options: {
         "view": "Grid view",
       }
