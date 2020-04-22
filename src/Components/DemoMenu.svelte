@@ -67,7 +67,7 @@
 
 
   // combines the different demos for the Demos component
-  export let demos = {...basicDemos, ...writeDemos}
+  export const demos = {...basicDemos, ...writeDemos}
 </script>
 
 

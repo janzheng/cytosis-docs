@@ -39,7 +39,7 @@
 
 	// good for SSR, but bad for re-running code as you can't re-mount something
   // onMount(async () => {
-  let loadCytosis = async function() {
+  export let loadCytosis = async function() {
 
   	console.log('CytosisWIP loading...', options)
   	// let hey = await getRecord({})
@@ -77,6 +77,7 @@
 	  }
   	// })
 	}
+
 
 	$: if(options) { // update when options change
 		loadCytosis()

@@ -1143,29 +1143,28 @@ static resetConfigCache (cytosis) {
   // recordId: replaces current record
   // note that the API requires tablename regardless either we find it or pass it in
   // Input: 
-  //    object: a JS object with one or more keys that match field (column) names in the table
+  //    payload: a JS object with one or more keys that match field (column) names in the table
   //    tableName: a string indicating what table to save to
   //    cytosis: cytosis object (w/ proper key/base)
   //    recordId: a string, if defined, would save the object into the existing record w/ recordId
   // Output:
   //    an object: the saved record object as returned from Airtable
-  static save (object, tableName, cytosis, recordId=undefined) {
+  static save ({payload, tableName, apiKey, baseId, cytosis, recordId, tableOptions}) {
     
-    if(!Cytosis.preCheck(cytosis))
-      return
+    const base = Cytosis.getBase(apiKey || cytosis.apiKey, baseId || cytosis.baseId) // airtable base object
+    const typecast = tableOptions && tableOptions.insertOptions && tableOptions.insertOptions.includes('typecast') ? true : false
 
-    let base = cytosis.base
     try {
       return new Promise(function(resolve, reject) {
         if (!recordId) {
-          base(tableName).create(object, function(err, record) {
+          base(tableName).create(payload, {typecast}, function(err, record) {
             if (err) { console.error('Airtable async save/create error', err); reject(err); return }
             console.log('New record: ' , record.getId(), record.fields['Name'])
             resolve(record)
           })
         } else {
           // old API doesn't support typecast
-          base(tableName).update(recordId, object, function(err, record) {
+          base(tableName).update(recordId, payload, {typecast}, function(err, record) {
             if (err) { console.error('Airtable async save error', err); reject(err); return }
             console.log('Updated record: ' , record.getId(), record.fields['Name'])
             resolve(record)
