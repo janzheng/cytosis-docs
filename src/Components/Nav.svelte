@@ -12,7 +12,8 @@
     </div>
 
     <div class="_margin-bottom-2">
-      <a href="https://airtable.com/shr2ITCNwUa0UCmPH">Airtable Demo Base</a>
+      <a href="https://airtable.com/shr2ITCNwUa0UCmPH">Cytosis Documentation demo base</a> | 
+      <a href="https://airtable.com/shrW9Hz9VT2zhxDQ7">Cytosis Editor public base</a>
     </div>
 
   </div>
