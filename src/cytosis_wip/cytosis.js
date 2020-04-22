@@ -251,7 +251,7 @@ class Cytosis {
       return new Promise(function(resolve, reject) {
         let timedFetcher
 
-        // console.log('airtableFetching:', tableName, filterObj, base._base)
+        console.log('airtableFetching:', tableName, filterObj, base._base)
         
         base(tableName).select(
           filterObj
@@ -630,6 +630,9 @@ static initFromConfig (cytosis, _config) {
         maxRecords: config.fields['maxRecords'] || cytosis.tableOptions['maxRecords'],
         pageSize: config.fields['pageSize'] || cytosis.tableOptions['pageSize'],
         view: config.fields['view'] || cytosis.tableOptions['view'],
+
+        keyword: config.fields['keyword'] || cytosis.tableOptions['keyword'], // used for filter searching
+        matchCase: config.fields['matchCase'] || cytosis.tableOptions['matchCase'], // if true, only matches if case is the same; otherwise performs a LOWER()
         matchKeywordWithField: config.fields['matchKeywordWithField'] || cytosis.tableOptions['matchKeywordWithField'],
         matchStyle: config.fields['matchStyle'] || cytosis.tableOptions['matchStyle'], // how are keywords matched?
       }
@@ -832,7 +835,7 @@ static resetConfigCache (cytosis) {
     let view = options.view || ''
     let filter = options.filter || ''
 
-    // console.log('getTables retrieving:', tableNames, options)
+    console.log('get Filter options:', tableName, options)
 
     // if matchKeywordWithField exists, and a keyword was passed into the cytosis options object,
     // we create a filterByFormula where the given keyword has to exist in the field
@@ -840,13 +843,25 @@ static resetConfigCache (cytosis) {
     if(options && options.keyword && options.matchKeywordWithField) {
       // this only works when there is an EXACT match
       // DEFAULT
-      filter = `IF({${options.matchKeywordWithField}} = "${options.keyword}",TRUE(),FALSE())`
+      if(options.matchCase == true) {
+        filter = `IF({${options.matchKeywordWithField}} = "${options.keyword}",TRUE(),FALSE())`
+      } else {
+        filter = `IF(LOWER({${options.matchKeywordWithField}}) = LOWER("${options.keyword}"),TRUE(),FALSE())`
+      }
       
       // this works when the string exists as a part
-      if(options.matchStyle == "partial")
-        filter = `IF(SEARCH("${options.keyword}",{${options.matchKeywordWithField}}) > 0,TRUE(),FALSE())`
+      // "exact" match is default so we don't have code for it
+      if(options.matchStyle == "partial") {
+        if(options.matchCase == true) {
+          filter = `IF(SEARCH("${options.keyword}",{${options.matchKeywordWithField}}) > 0,TRUE(),FALSE())`
+        } else {
+          filter = ` IF(SEARCH(LOWER("${options.keyword}"),LOWER({${options.matchKeywordWithField}})) > 0,TRUE(),FALSE())`
+        }
+      }
       
-      // note: you can't use Filter formula to SEARCH through a string separated arrays, so that' stabled for now
+
+      // note: you can't use Filter formula to SEARCH through a string separated arrays, so that's tabled for now
+      // it has to be handled on an API, or as a rollup or "search" field on the Airtable itself that has all the text compiled into one field
       // console.log('matchKeywordWithField filter: ', filter, ' for', options.keyword, ' with', options.matchKeywordWithField, ' and match style', options.matchStyle)
     }
     
