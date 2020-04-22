@@ -57,7 +57,7 @@
     'demoNine': {name: "Demo Nine", component: DemoNine, title: "9. Linked Queries", description: "This demo shows how combine queries into a single query in config. This is really useful for splitting and creating complex, fine-grained queries."},
     'demoTen': {name: "Demo Ten", component: DemoTen, title: "10. Multiple Airtables", description: "This demo shows to combine multiple bases into one Cytosis."},
 
-    'sandbox': {name: "Sandbox", component: DemoSandbox, title: "Sandbox", description: "This is a sandbox. Have fun!"},
+    // 'sandbox': {name: "Sandbox", component: DemoSandbox, title: "Sandbox", description: "This is a sandbox. Have fun!"},
   }
 
 

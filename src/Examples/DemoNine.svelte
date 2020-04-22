@@ -22,6 +22,7 @@
       ... loading Cytosis object ...
     {/if}
     {#if cytosisObject}
+      <p>Tables: {Object.keys(cytosisObject.results).join(', ')}</p>
       {#each Object.keys(cytosisObject.results) as table (table)}
         <h4>Table: { table }</h4>
         {#each cytosisObject.results[table] as item (item.id)}

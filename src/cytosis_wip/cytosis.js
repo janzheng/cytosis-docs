@@ -182,7 +182,12 @@ class Cytosis {
     return Airtable.base(baseId)
   }
 
-  static preCheck ({apiKey, baseId}) {
+  static preCheck ({apiKey, baseId}, bases = undefined) {
+    if(bases) {
+      // give a pass; might do more rigorous checking later
+      return true
+    }
+
     if (apiKey && baseId)
       return true
 
@@ -239,7 +244,7 @@ class Cytosis {
     // need to follow these defaults for airtable:
     // view='', fields=undefined, sort=undefined, filter='', 
 
-    if(!Cytosis.preCheck(cytosis))
+    if(!Cytosis.preCheck(cytosis, bases))
       return {}
 
 
@@ -285,7 +290,7 @@ class Cytosis {
       })
     }
 
-    const getTablePromise = function({tableNames, options}) {
+    const getTablePromise = function({tableNames, options, apiKey, baseId}) {
       try {
 
 
@@ -304,7 +309,7 @@ class Cytosis {
           // console.log('[Cytosis/getTables] Retrieving:', tableName)
           // table of promises
           pTables.push(airtableFetch({
-            base: Cytosis.getBase(cytosis.apiKey, cytosis.baseId), // airtable base object
+            base: Cytosis.getBase(apiKey, baseId), // airtable base object
             tableName,
             filterObj,
             list,
