@@ -38,6 +38,7 @@
   import DemoNine from '../examples/DemoNine.svelte'
   import DemoTen from '../examples/DemoTen.svelte'
   import DemoEleven from '../examples/DemoEleven.svelte'
+  import DemoTwelve from '../examples/DemoTwelve.svelte'
 
   import DemoSandbox from '../examples/DemoSandbox.svelte'
 
@@ -56,13 +57,15 @@
     'demoEight': {name: "Demo Eight", component: DemoEight, title: "8. Search", description: "This demo shows how to use cytosis to search and retrieve from Airtable."},
     'demoNine': {name: "Demo Nine", component: DemoNine, title: "9. Linked Queries", description: "This demo shows how combine queries into a single query in config. This is really useful for splitting and creating complex, fine-grained queries."},
     'demoTen': {name: "Demo Ten", component: DemoTen, title: "10. Multiple Airtables", description: "This demo shows to combine multiple bases into one Cytosis."},
+    'demoEleven': {name: "Demo Eleven", component: DemoEleven, title: "11. Getting and finding what you need", description: "This demo shows how to use Get, Find, and other retrieval functions."},
+
 
     // 'sandbox': {name: "Sandbox", component: DemoSandbox, title: "Sandbox", description: "This is a sandbox. Have fun!"},
   }
 
 
   export let writeDemos = {
-    'demoEleven': {name: "Demo Eleven", component: DemoEleven, title: "11. Saving to Cytosis", description: "This demo shows how to use a form to save directly to Cytosis."},
+    'demoTwelve': {name: "Demo Twelve", component: DemoTwelve, title: "12. Saving to Cytosis", description: "This demo shows how to save a form directly to Cytosis."},
   }
 
 

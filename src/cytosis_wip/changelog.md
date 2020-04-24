@@ -23,6 +23,16 @@ Quick Notes
 ```
 
 
+- 4/24/2020
+	- renamed 'getLinkedRecords' to 'getByIds' and (breaking!) removed the requirement to pass in "true" for getting an object back. Instead, to get a field just pass in a field name
+	- added destructuring to getFields so mulitple select tables will be on the same level as the base array
+
+- 4/23/2020
+	- added save / insertLinkedObjects to save linked objects when saving one object
+	- get changed to getById
+	- changed find() to return linked object records instead of just ids when looking at a column
+	- changed search: now takes a Cytosis.results object, fieldsArray is optional, added exactMatch and matchCase, and changed how the fn takes arguments (encapsulating using an 'opts' object)
+
 
 - 4/19/2020
 	- added save/load config caching into `initCytosis`
