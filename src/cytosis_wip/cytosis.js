@@ -1665,7 +1665,6 @@ class Cytosis {
         results.push(record.fields[fieldName])
     }
 
-    console.log('?!?!', recordArray.length, results.length)
     return results
   }
 
