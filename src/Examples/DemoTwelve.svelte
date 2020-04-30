@@ -100,7 +100,7 @@
 To add new items like linked tables and single and multiple select values, you can use "typecast" which creates new items in Airtable. For this to work, make sure the API key's user has **Creator Access** and not merely editor access. This works for both single and multiple select fields and linked fields
 `
 
-  export const linkedTables = `You might have noticed the Animal field is a linked table, and doesn't show up properly, because it's in another table (Animals). For those to show up, you have to get the linked record with 'getLinkedRecords'
+  export const linkedTables = `You might have noticed the Animal field is a linked table, and doesn't show up properly, because it's in another table (Animals). For those to show up, you have to get the linked record with 'getByIds'
 `
 
   export const savingLinkedTables = `Here is an example of how to save to linked tables with Cytosis' insertLinked() function, which doesn't require typecasting. (However, do note that new Multi Select items still need typecasting and Creator permissions to create new options)
@@ -171,7 +171,7 @@ To add new items like linked tables and single and multiple select values, you c
 
 
   const getPetNames = (pet) => {
-    const animals = Cytosis.getLinkedRecords(pet.fields['Animal'], cytosisObject.results['Animals'], true)
+    const animals = Cytosis.getByIds(pet.fields['Animal'], cytosisObject.results['Animals'])
     let pets = []
     animals.map((pet) => {
       pets.push(pet.fields['Name'])

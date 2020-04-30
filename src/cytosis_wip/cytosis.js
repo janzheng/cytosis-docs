@@ -43,7 +43,7 @@ class Cytosis {
 
 
     // caching
-    this.useConfigCache = opts.useConfigCache || true // tries a cache strat for config if true
+    this.useConfigCache = opts.useConfigCache == false ? false : true // tries a cache strat for config if true
     this.cacheStrategy = opts.cacheStrategy || 'localStorage'
     this.configCacheId = opts.configCacheId || undefined  // this is normally set in the cache fn
 
@@ -54,6 +54,14 @@ class Cytosis {
 
     this.results = {}
     this._lastUpdated
+
+
+
+    // configs
+    this.debug = opts.debug || undefined  // this is normally set in the cache fn
+
+    if(this.debug)
+      console.log(this)
 
     // if no query, we just return this object
     // if(!_this.configName) {
@@ -524,10 +532,9 @@ class Cytosis {
     // console.log('Starting cytosis', cytosis)
     const _this = cytosis
 
-    // console.log('initializing from index: ', configName)
+    console.log('initializing from index: ', cytosis.configName)
 
     return new Promise(function(resolve, reject) {
-
 
       // if config exists, we skip retrieving _cytosis and go right to setup this saves some fetches
       if(_this.configObject) {
@@ -544,7 +551,6 @@ class Cytosis {
         resolve(true)
         return
       }
-
 
       // if no config or tables setup, we grab config table
       if(!_this.configObject) {
@@ -563,7 +569,6 @@ class Cytosis {
             return
           }
         }
-
 
         console.log('[Cytosis/init] Loading config from table:', _this.configTableName, )
 
@@ -745,66 +750,95 @@ class Cytosis {
 
   // store config into a cache strategy
   static saveConfigCache (cytosis) {
-    if(cytosis && cytosis.configObject && localStorage) {
-      const configCacheId = cytosis.configCacheId || `config-${cytosis.baseId}`
 
-      const now = new Date()
-      const cacheItem = {
-        value: cytosis.configObject,
-        expiry: now.getTime() + cytosis.cacheDuration
+    if(cytosis.useConfigCache == false)
+      return false
+    
+    try {
+      if(cytosis && cytosis.configObject && localStorage) {
+        const configCacheId = cytosis.configCacheId || `config-${cytosis.baseId}`
+
+        const now = new Date()
+        const cacheItem = {
+          value: cytosis.configObject,
+          expiry: now.getTime() + cytosis.cacheDuration
+        }
+
+        console.log('[Cytosis/saveConfigCache] Caching config:', configCacheId, cytosis.configObject)
+        localStorage.setItem(configCacheId, JSON.stringify(cacheItem));
+        // const cacheId = cytosis
+        return true
       }
 
-      console.log('[Cytosis/saveConfigCache] Caching config:', configCacheId, cytosis.configObject)
-      localStorage.setItem(configCacheId, JSON.stringify(cacheItem));
-      // const cacheId = cytosis
-      return true
+      console.warn('[Cytosis/saveConfigCache] Config not cached; please provide a Cytosis object, and ensure it has a configObject set')
+      return false
+    } catch(e) {
+      console.warn('[Cytosis/init/saveConfigCache] No localstorage available; skipping' )
+      return false
     }
-
-    console.warn('[Cytosis/saveConfigCache] Config not cached; please provide a Cytosis object, and ensure it has a configObject set')
-    return false
   }
 
   // load config from a cache strategy
   static loadConfigCache (cytosis, configCacheId = null) {
 
-    if(cytosis)
-      configCacheId = cytosis.configCacheId || `config-${cytosis.baseId}`
-    
-    // console.log('loading config cache..', cytosis, localStorage)
+    if(cytosis.useConfigCache == false)
+      return false
 
-    // this will fail if running on server
-    if(localStorage && configCacheId) {
-      const cacheItem = localStorage.getItem(configCacheId)
+    // will just fail silently on server
+    try {
 
-      if (!cacheItem) {
-        return null
+      if(cytosis)
+        configCacheId = cytosis.configCacheId || `config-${cytosis.baseId}`
+      
+      // console.log('loading config cache..', cytosis, localStorage)
+
+      // this will fail if running on server
+      if(localStorage && configCacheId) {
+        const cacheItem = localStorage.getItem(configCacheId)
+
+        if (!cacheItem) {
+          return null
+        }
+
+        const {value, expiry} = JSON.parse(cacheItem)
+        const now = new Date()
+
+        // compare the expiry time of the item with the current time
+        // console.log('[Cytosis/loadConfigCache] Cache expires ', expiry.toLocaleString())
+        if (now.getTime() > expiry) {
+          localStorage.removeItem(configCacheId)
+          return null
+        }
+        return value
       }
-
-      const {value, expiry} = JSON.parse(cacheItem)
-      const now = new Date()
-
-      // compare the expiry time of the item with the current time
-      // console.log('[Cytosis/loadConfigCache] Cache expires ', expiry.toLocaleString())
-      if (now.getTime() > expiry) {
-        localStorage.removeItem(configCacheId)
-        return null
-      }
-      return value
+      console.warn('[Cytosis/loadConfigCache] Need to provide Cytosis object to clear cache')
+      return null
+    } catch(e) {
+      console.warn('[Cytosis/init/loadconfigCache] No localstorage available; skipping' )
+      return false
     }
-    console.warn('[Cytosis/loadConfigCache] Need to provide Cytosis object to clear cache')
-    return null
   }
 
 
 
   static resetConfigCache (cytosis) {
-    if(cytosis && localStorage) {
-      const configCacheId = cytosis.configCacheId || `config-${cytosis.baseId}`
-      localStorage.removeItem(configCacheId)
-    }
 
-    console.warn('[Cytosis/resetConfigCache] Need to provide Cytosis object to clear cache')
-    return false
+    if(cytosis.useConfigCache == false)
+      return false
+
+    try{
+      if(cytosis && localStorage) {
+        const configCacheId = cytosis.configCacheId || `config-${cytosis.baseId}`
+        localStorage.removeItem(configCacheId)
+        return truee
+      }
+
+      console.warn('[Cytosis/resetConfigCache] Need to provide Cytosis object to clear cache')
+      return false
+    } catch(e) {
+      console.warn('[Cytosis/init/resetConfigCache] No localstorage available; skipping' )
+      return false
+    }
   }
 
 

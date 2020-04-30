@@ -22,6 +22,8 @@ Quick Notes
   })
 ```
 
+- 4/27/2020
+	- added try/catches for all the localstorage stuff
 
 - 4/24/2020
 	- renamed 'getLinkedRecords' to 'getByIds' and (breaking!) removed the requirement to pass in "true" for getting an object back. Instead, to get a field just pass in a field name
