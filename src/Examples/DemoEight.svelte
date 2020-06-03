@@ -10,19 +10,39 @@
   <div class="Formlet Formlet-input _form-control" >
     <label class="_form-label" >Search: ({searchTerm || 'type something'})</label>
     <input class="_form-input __width-full" type="text" bind:value={searchTerm}>
-    <div class="_form-checkbox __inline _padding-top">
-      <label>
-        <input type=checkbox bind:checked={exactMatch}
-        >
-        Exact match?
-      </label>
-    </div>
-    <div class="_form-checkbox __inline _padding-top-half">
-      <label>
-        <input type=checkbox bind:checked={matchCase}
-        >
-        Match case?
-      </label>
+    <div class="_grid-2 _margin-top">
+      <div class="_card _padding">
+        <div class="_form-checkbox __inline _padding-top">
+          <label>
+            <input type=checkbox bind:checked={exactMatch}
+            >
+            Exact match?
+          </label>
+        </div>
+        <div class="_form-checkbox __inline ">
+          <label>
+            <input type=checkbox bind:checked={matchCase}
+            >
+            Match case?
+          </label>
+        </div>
+      </div>
+      <div class="_card _padding">
+        <div class="_form-checkbox __inline _padding-top">
+          <label>
+            <input type=checkbox bind:checked={matchName}
+            >
+            Use [Name] field
+          </label>
+        </div>
+        <div class="_form-checkbox __inline ">
+          <label>
+            <input type=checkbox bind:checked={matchContent}
+            >
+            Use [Content] field
+          </label>
+        </div>
+      </div>
     </div>
   </div> 
 
@@ -34,7 +54,8 @@
       routeDetails: 'Demo Eight',
       tableOptions: {
         keyword: searchTerm,
-        matchKeywordWithField: 'Content',
+        // matchKeywordWithField: 'Content',
+        matchKeywordWithFields: matchFields,
         matchStyle: exactMatch == true ? 'exact' : 'partial',
         matchCase,
       }
@@ -84,7 +105,15 @@ This example searches the Content field and returns the results. Try typing some
   `
 
   let status, searchTerm = "", exactMatch = false, matchCase = false
+  let matchName = false, matchContent = true, matchFields = []
   let cytosisObject, cytosisLoading = false
+
+  $: matchFields = [
+      matchName ? 'Name' : undefined,
+      matchContent ? 'Content' : undefined,
+  ]
+
+  $: console.log('matchf', matchFields)
 
 </script>
 

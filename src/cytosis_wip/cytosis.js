@@ -47,9 +47,11 @@ class Cytosis {
     this.cacheStrategy = opts.cacheStrategy || 'localStorage'
     this.configCacheId = opts.configCacheId || undefined  // this is normally set in the cache fn
 
+
     // these are set by the _config ('_cytosis') table
     // if you provide bases, it'll skip the _config
 
+    this.verbose = opts.verbose || false // for verbose logging
     this.endpointUrl = opts.endpointUrl
 
     this.results = {}
@@ -84,7 +86,8 @@ class Cytosis {
         }
 
         if(loaded) {
-          console.log('[Cytosis] _cytosis initiated:', _this.bases)
+          if(_this.verbose)
+            console.log('[Cytosis] _cytosis initiated:', _this.bases)
           // then retrieve the actual data
 
           Cytosis.loadCytosisData(_this).then((newCytosis) => {
@@ -637,6 +640,7 @@ class Cytosis {
         keyword: config.fields['keyword'] || cytosis.tableOptions['keyword'], // used for filter searching
         matchCase: config.fields['matchCase'] || cytosis.tableOptions['matchCase'], // if true, only matches if case is the same; otherwise performs a LOWER()
         matchKeywordWithField: config.fields['matchKeywordWithField'] || cytosis.tableOptions['matchKeywordWithField'],
+        matchKeywordWithFields: config.fields['matchKeywordWithFields'] || cytosis.tableOptions['matchKeywordWithFields'],
         matchStyle: config.fields['matchStyle'] || cytosis.tableOptions['matchStyle'], // how are keywords matched?
       }
 
@@ -879,6 +883,41 @@ class Cytosis {
       // note: you can't use Filter formula to SEARCH through a string separated arrays, so that's tabled for now
       // it has to be handled on an API, or as a rollup or "search" field on the Airtable itself that has all the text compiled into one field
       // console.log('matchKeywordWithField filter: ', filter, ' for', options.keyword, ' with', options.matchKeywordWithField, ' and match style', options.matchStyle)
+    }
+
+    // works like matchKeywordWithField but takes an array of fields and wraps if statements around an OR()
+    // replaces matchKeywordWithField
+    if(options && options.keyword && options.matchKeywordWithFields) {
+      let filters = []
+
+      options.matchKeywordWithFields.map((fieldName) => {
+        if(!fieldName) // exclude names that don't exist
+          return
+
+        if(options.matchCase == true) {
+          filters.push(`IF({${fieldName}} = "${options.keyword}",TRUE(),FALSE())`)
+        } else {
+          filters.push(`IF(LOWER({${fieldName}}) = LOWER("${options.keyword}"),TRUE(),FALSE())`)
+        }
+        
+        // this works when the string exists as a part
+        // "exact" match is default so we don't have code for it
+        if(options.matchStyle == "partial") {
+          if(options.matchCase == true) {
+            filters.push(`IF(SEARCH("${options.keyword}",{${fieldName}}) > 0,TRUE(),FALSE())`)
+          } else {
+            filters.push(`IF(SEARCH(LOWER("${options.keyword}"),LOWER({${fieldName}})) > 0,TRUE(),FALSE())`)
+          }
+        }
+      })
+
+      filter = 'OR('
+      filters.map((_filter, i) => {
+        if (i>0)
+          filter += ','
+        filter += _filter
+      })
+        filter += ')'
     }
     
     const filterObj = {

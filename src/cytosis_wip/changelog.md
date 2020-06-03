@@ -22,6 +22,10 @@ Quick Notes
   })
 ```
 
+- 6/3/2020
+	- added options.matchKeywordWithFields which takes an array of field names
+	- really useful for matching against multiple fields, like "Name" and "Slug" in one call
+
 - 4/27/2020
 	- added try/catches for all the localstorage stuff
 
