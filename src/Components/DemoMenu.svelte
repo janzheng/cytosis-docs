@@ -39,6 +39,8 @@
   import DemoTen from '../examples/DemoTen.svelte'
   import DemoEleven from '../examples/DemoEleven.svelte'
   import DemoTwelve from '../examples/DemoTwelve.svelte'
+  import DemoThirteen from '../examples/DemoThirteen.svelte'
+  // import DemoFourteen from '../examples/DemoFourteen.svelte'
 
   import DemoSandbox from '../examples/DemoSandbox.svelte'
 
@@ -66,6 +68,8 @@
 
   export let writeDemos = {
     'demoTwelve': {name: "Demo Twelve", component: DemoTwelve, title: "12. Saving to Cytosis", description: "This demo shows how to save a form directly to Cytosis."},
+    'demoThirteen': {name: "Demo Thirteen", component: DemoThirteen, title: "13. Saving multiple objects", description: "This demo shows how to save arrays of objects to Cytosis."},
+    // 'demoFourteen': {name: "Demo Fourteen", component: DemoFourteen, title: "14. Deleting data", description: "This demo shows how to delete data from Cytosis."},
   }
 
 

@@ -136,6 +136,7 @@ To add new items like linked tables and single and multiple select values, you c
         Tags: tags.length > 0 ? tags.split(',').map(item => item.trim()) : null,
       }
     })
+    animalName = ""
     petName = ""
     tags = ""
 

@@ -535,7 +535,8 @@ class Cytosis {
     // console.log('Starting cytosis', cytosis)
     const _this = cytosis
 
-    console.log('initializing from index: ', cytosis.configName)
+    if(_this.verbose)
+      console.log('initializing from index: ', cytosis.configName)
 
     return new Promise(function(resolve, reject) {
 
@@ -917,7 +918,7 @@ class Cytosis {
           filter += ','
         filter += _filter
       })
-        filter += ')'
+      filter += ')'
     }
     
     const filterObj = {
@@ -1028,7 +1029,7 @@ class Cytosis {
   // Output: a single record object
   static async getRecord ({recordId, base, tableName, apiKey, baseId, endpointUrl}) {
 
-    console.log('getting record:', recordId)
+    // console.log('getting record:', recordId)
     try {
       if(!tableName)
         throw new Error(`[Cytosis/getRecord] Please provide a table name`)
@@ -1392,28 +1393,60 @@ class Cytosis {
 
 
 
-  // uses the new Airtable create/update API
+  // uses the Airtable create/update/replace API by passing in an array as a payload 
+  // in order to update or replace, each object must have an "id" field w/ a correct record ID
   // passes in an array of objects (id is embedded within the objects)
-  // takes up to ten objects in the array
+  // takes up to ten objects in the array (or Airtable will make it fail) TODO: accept more than 10 and break it up with a loop
   // set "create" to true to create has to be explicit, since it's easier to read 
   // to create: objectArray = [{fields: "name: {}, ..."}]
   // to update: objectArray = [{id: "123", fields: "name: {}, ..."}]
-  static saveArray (objectArray, tableName, cytosis, create=false, typecast=false) {
-    
-    if(!Cytosis.preCheck(cytosis))
-      return
+  // type: create | update | replace
 
-    let base = cytosis.base
+  static saveArray ({payload, tableName, apiKey, baseId, cytosis, tableOptions, type="create"}) {
+    
+    const base = Cytosis.getBase(apiKey || cytosis.apiKey, baseId || cytosis.baseId) // airtable base object
+    const typecast = tableOptions && tableOptions.insertOptions && tableOptions.insertOptions.includes('typecast') ? true : false
+
+    if (!Array.isArray(payload) || (Array.isArray(payload) && payload.length < 1)) {
+      console.error('saveArray payload needs to be an array of objects')
+    }
+
+    let finalPayload = []
+    // The Airtable object takes objects of shape { fields: {/* whatever fields here*/} } which is annoying, 
+    // so we make sure the payload is properly formatted
+    if(typeof payload[0].fields === 'undefined') {
+      payload.map((item) => {
+        finalPayload.push({
+          id: item.id, // id is required for saving/updating
+          fields: item,
+        })
+      })
+    } else {
+      payload.map((item) => {
+        finalPayload.push({
+          id: item.id, // id is required for saving/updating
+          fields: item.fields,
+        })
+      })
+    }
+
+    // console.log('saving array:', finalPayload)
     try {
       return new Promise(function(resolve, reject) {
-        if (create) {
-          base(tableName).create(objectArray, {typecast: typecast}, function(err, records) {
+        if (type == 'create') {
+          base(tableName).create(finalPayload, {typecast: typecast}, function(err, records) {
             if (err) { console.error('Airtable async saveArray/create error', err); reject(err); return }
             console.log('New records: ' , records)
             resolve(records)
           })
-        } else {
-          base(tableName).update(objectArray, {typecast: typecast}, function(err, records) {
+        } else if(type == 'update') {
+          base(tableName).update(finalPayload, {typecast: typecast}, function(err, records) {
+            if (err) { console.error('Airtable async saveArray/update error', err); reject(err); return }
+            console.log('Updated records: ' , records)
+            resolve(records)
+          })
+        } else if(type == 'replace') { // destructive updates (undefined fields will be cleared)
+          base(tableName).replace(finalPayload, {typecast: typecast}, function(err, records) {
             if (err) { console.error('Airtable async saveArray/update error', err); reject(err); return }
             console.log('Updated records: ' , records)
             resolve(records)
@@ -1436,12 +1469,13 @@ class Cytosis {
   //    recordId: a string, the Id of the record to be deleted
   // Output:
   //    an object: the deleted record object as returned from Airtable
-  static delete (tableName, cytosis, recordId) {
+  static delete ({tableName, apiKey, baseId, cytosis, recordId}) {
 
-    if(!Cytosis.preCheck(cytosis))
-      return
+    const base = Cytosis.getBase(apiKey || cytosis.apiKey, baseId || cytosis.baseId) // airtable base object
+    
+    if(!recordId)
+      throw new Error('[Delete] Please provide a Record ID!')
 
-    let base = cytosis.base
     try {
       return new Promise(function(resolve, reject) {
         if (recordId) {

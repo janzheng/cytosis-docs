@@ -1,5 +1,6 @@
 
 <main class="Appy _section-page _margin-center"> 
+
   <Nav {active} />
   <svelte:component this={Route} {params} />
 </main>
@@ -51,6 +52,7 @@
     window.scrollTo(0, 0);
   })
     .on('/', () => {
+      console.log('/home')
       Route = Home;
       window.scrollTo(0, 0);
     })
@@ -63,6 +65,7 @@
     //   window.scrollTo(0, 0);
     // })
     .on('/demos/:demoName', (_params) => {
+      console.log('/demos')
       Route = Demos;
       params = _params;
       window.scrollTo(0, 0);
@@ -70,7 +73,7 @@
     // .on('/blog/:postid', obj => run(import('../routes/Article.svelte'), obj))
     .listen();
 
-  onDestroy(router.unlisten);
+  // onDestroy(router.unlisten);
 
 
 </script>

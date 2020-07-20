@@ -1,5 +1,5 @@
 {
-  "name": "svelte-app",
+  "name": "cytosis-docs",
   "version": "1.0.0",
   "devDependencies": {
     "@babel/core": "^7.9.0",
@@ -26,7 +26,7 @@
     "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-svelte": "^5.0.3",
     "rollup-plugin-terser": "^4.0.4",
-    "svelte": "^3.20.1",
+    "svelte": "^3.24.0",
     "svelte-preprocess": "^3.7.1"
   },
   "dependencies": {
@@ -36,7 +36,7 @@
     "bl": "^4.0.2",
     "kind-of": "^6.0.3",
     "minimist": "^1.2.5",
-    "navaid": "^1.1.0",
+    "navaid": "^1.1.1",
     "rollup-plugin-sass": "^1.2.2",
     "serialize-javascript": "^3.0.0",
     "sirv-cli": "^0.4.4"
