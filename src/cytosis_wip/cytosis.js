@@ -639,6 +639,7 @@ class Cytosis {
         view: config.fields['view'] || cytosis.tableOptions['view'],
 
         keyword: config.fields['keyword'] || cytosis.tableOptions['keyword'], // used for filter searching
+        keywords: config.fields['keywords'] || cytosis.tableOptions['keywords'], // used for filter searching
         matchCase: config.fields['matchCase'] || cytosis.tableOptions['matchCase'], // if true, only matches if case is the same; otherwise performs a LOWER()
         matchKeywordWithField: config.fields['matchKeywordWithField'] || cytosis.tableOptions['matchKeywordWithField'],
         matchKeywordWithFields: config.fields['matchKeywordWithFields'] || cytosis.tableOptions['matchKeywordWithFields'],
@@ -888,7 +889,7 @@ class Cytosis {
 
     // works like matchKeywordWithField but takes an array of fields and wraps if statements around an OR()
     // replaces matchKeywordWithField
-    if(options && options.keyword && options.matchKeywordWithFields) {
+    function keywordFilter(keyword) {
       let filters = []
 
       options.matchKeywordWithFields.map((fieldName) => {
@@ -896,18 +897,18 @@ class Cytosis {
           return
 
         if(options.matchCase == true) {
-          filters.push(`IF({${fieldName}} = "${options.keyword}",TRUE(),FALSE())`)
+          filters.push(`IF({${fieldName}} = "${keyword}",TRUE(),FALSE())`)
         } else {
-          filters.push(`IF(LOWER({${fieldName}}) = LOWER("${options.keyword}"),TRUE(),FALSE())`)
+          filters.push(`IF(LOWER({${fieldName}}) = LOWER("${keyword}"),TRUE(),FALSE())`)
         }
         
         // this works when the string exists as a part
         // "exact" match is default so we don't have code for it
         if(options.matchStyle == "partial") {
           if(options.matchCase == true) {
-            filters.push(`IF(SEARCH("${options.keyword}",{${fieldName}}) > 0,TRUE(),FALSE())`)
+            filters.push(`IF(SEARCH("${keyword}",{${fieldName}}) > 0,TRUE(),FALSE())`)
           } else {
-            filters.push(`IF(SEARCH(LOWER("${options.keyword}"),LOWER({${fieldName}})) > 0,TRUE(),FALSE())`)
+            filters.push(`IF(SEARCH(LOWER("${keyword}"),LOWER({${fieldName}})) > 0,TRUE(),FALSE())`)
           }
         }
       })
@@ -920,6 +921,32 @@ class Cytosis {
       })
       filter += ')'
     }
+      
+    if(options && options.keyword && options.matchKeywordWithFields) {
+      keywordFilter(options.keyword)
+    }
+
+    // multiple keywords will only work with `matchKeywordWithFields` option
+    if(options && options.keywords && options.matchKeywordWithFields) {
+      console.log('advanced search:', options.keywords, options.matchKeywordWithFields)
+      let filters = []
+      options.keywords.map(keyword => {
+        if (!keyword || keyword.trim().length == 0)
+          return
+        keywordFilter(keyword.trim()) // sets filter independently
+        filters.push(filter)
+      })
+      filter = 'OR('
+      filters.map((_filter, i) => {
+        if (i>0)
+          filter += ','
+        filter += _filter
+      })
+      filter += ')'
+    }
+      
+
+  
     
     const filterObj = {
       filterByFormula: filter,

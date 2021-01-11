@@ -42,6 +42,13 @@
             Use [Content] field
           </label>
         </div>
+        <div class="_form-checkbox __inline ">
+          <label>
+            <input type=checkbox bind:checked={matchId}
+            >
+            Use [Id] field
+          </label>
+        </div>
       </div>
     </div>
   </div> 
@@ -53,7 +60,8 @@
       configName: 'content-all',
       routeDetails: 'Demo Eight',
       tableOptions: {
-        keyword: searchTerm,
+        keyword: searchTerm && !searchArray ? searchTerm : undefined,
+        keywords : searchTerm && searchArray,
         // matchKeywordWithField: 'Content',
         matchKeywordWithFields: matchFields,
         matchStyle: exactMatch == true ? 'exact' : 'partial',
@@ -104,16 +112,24 @@
 This example searches the Content field and returns the results. Try typing something like "Sorted" — with exact match, only the one term will show up, otherwise all the terms that contain "Sorted" will show up
   `
 
-  let status, searchTerm = "", exactMatch = false, matchCase = false
-  let matchName = false, matchContent = true, matchFields = []
+  let status, searchTerm = "", searchArray, exactMatch = false, matchCase = false
+  let matchName = false, matchContent = true, matchId = true, matchFields = []
   let cytosisObject, cytosisLoading = false
 
   $: matchFields = [
-      matchName ? 'Name' : undefined,
-      matchContent ? 'Content' : undefined,
+    matchName ? 'Name' : undefined,
+    matchContent ? 'Content' : undefined,
+    matchId ? 'Id' : undefined,
   ]
 
   $: console.log('matchf', matchFields)
+
+  $: if(searchTerm.split(',').length > 1){
+    searchArray = searchTerm.split(',')
+    console.log('multiple search?', searchTerm, searchArray)
+  } else {
+    searchArray = null
+  }
 
 </script>
 
