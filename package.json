@@ -12,7 +12,7 @@
     "coeur": "^0.2.292",
     "cytosis": "^0.0.352",
     "dotenv": "^8.2.0",
-    "marked": "^0.8.2",
+    "marked": "^4.0.10",
     "node-sass": "^4.13.1",
     "npm-run-all": "^4.1.5",
     "punycode": "^2.1.1",
