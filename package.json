@@ -35,7 +35,7 @@
     "airtable": "^0.8.1",
     "bl": "^4.0.2",
     "kind-of": "^6.0.3",
-    "minimist": "^1.2.5",
+    "minimist": "^1.2.6",
     "navaid": "^1.1.1",
     "rollup-plugin-sass": "^1.2.2",
     "serialize-javascript": "^3.0.0",
